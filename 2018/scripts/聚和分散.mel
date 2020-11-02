@@ -1,0 +1,20 @@
+string $nb[]=`ls -sl`;
+for ($a in $nb)
+{
+    setAttr ($a+".tx") (rand(-10,10));
+    setAttr ($a+".ty") (rand(-10,10));
+    setAttr ($a+".tz") (rand(-10,10));
+    
+    setAttr ($a+".rx") (rand(0,360));
+    setAttr ($a+".ry") (rand(0,360));
+    setAttr ($a+".rz") (rand(0,360));
+    
+    setKeyframe ($a+".tx");
+    setKeyframe ($a+".ty");
+    setKeyframe ($a+".tz");
+    setKeyframe ($a+".rx");
+    setKeyframe ($a+".ry");
+    setKeyframe ($a+".rz");
+
+}
+select -r $nb;

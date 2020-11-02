@@ -1,0 +1,421 @@
+global proc shelf_HDRLightStudio () {
+    global string $gBuffStr;
+    global string $gBuffStr0;
+    global string $gBuffStr1;
+
+
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Start HDR Light Studio Connection" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Start HDR Light Studio Connection" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "BtnStart.png" 
+        -image1 "BtnStart.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "bPluginLoaded = maya.cmds.pluginInfo(\"HDRLSConnection\", query=True, loaded=True)\nif not bPluginLoaded:\n\tmaya.cmds.confirmDialog(title=\"HDRLightStudio\", message=\"HDRLightStudio Connection Plugin is not currently loaded in Maya\", button=[\"OK\"], defaultButton=\"OK\")\nelse:\n\timport HdrlsShelf\n\treload(HdrlsShelf)\n\tHdrlsShelf.btnShelfStartPress()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Pause HDR Light Studio Connection" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Pause HDR Light Studio Connection" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "BtnPause.png" 
+        -image1 "BtnPause.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "bPluginLoaded = maya.cmds.pluginInfo(\"HDRLSConnection\", query=True, loaded=True)\nif not bPluginLoaded:\n\tmaya.cmds.confirmDialog(title=\"HDRLightStudio\", message=\"HDRLightStudio Connection Plugin is not currently loaded in Maya\", button=[\"OK\"], defaultButton=\"OK\")\nelse:\n\timport HdrlsShelf\n\treload(HdrlsShelf)\n\tHdrlsShelf.btnShelfPausePress()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Stop HDR Light Studio Connection" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Stop HDR Light Studio Connection" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "BtnStop.png" 
+        -image1 "BtnStop.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "bPluginLoaded = maya.cmds.pluginInfo(\"HDRLSConnection\", query=True, loaded=True)\nif not bPluginLoaded:\n\tmaya.cmds.confirmDialog(title=\"HDRLightStudio\", message=\"HDRLightStudio Connection Plugin is not currently loaded in Maya\", button=[\"OK\"], defaultButton=\"OK\")\nelse:\n\timport HdrlsShelf\n\treload(HdrlsShelf)\n\tHdrlsShelf.btnShelfStopPress()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 34
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "HDR Light Studio Connection Hook List" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "HDR Light Studio Connection Hook List" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "BtnHooks.png" 
+        -image1 "BtnHooks.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "bPluginLoaded = maya.cmds.pluginInfo(\"HDRLSConnection\", query=True, loaded=True)\nif not bPluginLoaded:\n\tmaya.cmds.confirmDialog(title=\"HDRLightStudio\", message=\"HDRLightStudio Connection Plugin is not currently loaded in Maya\", button=[\"OK\"], defaultButton=\"OK\")\nelse:\n\timport HdrlsShelf\n\treload(HdrlsShelf)\n\tHdrlsShelf.btnShelfHooksPress()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Export to HDR Light Studio Connection" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Export to HDR Light Studio Connection" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "BtnExport.png" 
+        -image1 "BtnExport.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "bPluginLoaded = maya.cmds.pluginInfo(\"HDRLSConnection\", query=True, loaded=True)\nif not bPluginLoaded:\n\tmaya.cmds.confirmDialog(title=\"HDRLightStudio\", message=\"HDRLightStudio Connection Plugin is not currently loaded in Maya\", button=[\"OK\"], defaultButton=\"OK\")\nelse:\n\timport HdrlsShelf\n\treload(HdrlsShelf)\n\tHdrlsShelf.btnShelfExportPress()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 34
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "LightPaint Off" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "LightPaint Off" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "BtnLPNone.png" 
+        -image1 "BtnLPNone.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "bPluginLoaded = maya.cmds.pluginInfo(\"HDRLSConnection\", query=True, loaded=True)\nif not bPluginLoaded:\n\tmaya.cmds.confirmDialog(title=\"HDRLightStudio\", message=\"HDRLightStudio Connection Plugin is not currently loaded in Maya\", button=[\"OK\"], defaultButton=\"OK\")\nelse:\n\timport HdrlsShelf\n\treload(HdrlsShelf)\n\tHdrlsShelf.btnShelfLPNonePress()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "LightPaint Reflection" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "LightPaint Reflection" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "BtnLPRef.png" 
+        -image1 "BtnLPRef.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "bPluginLoaded = maya.cmds.pluginInfo(\"HDRLSConnection\", query=True, loaded=True)\nif not bPluginLoaded:\n\tmaya.cmds.confirmDialog(title=\"HDRLightStudio\", message=\"HDRLightStudio Connection Plugin is not currently loaded in Maya\", button=[\"OK\"], defaultButton=\"OK\")\nelse:\n\timport HdrlsShelf\n\treload(HdrlsShelf)\n\tHdrlsShelf.btnShelfLPRefPress()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "LightPaint Illumination" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "LightPaint Illumination" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "BtnLPIll.png" 
+        -image1 "BtnLPIll.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "bPluginLoaded = maya.cmds.pluginInfo(\"HDRLSConnection\", query=True, loaded=True)\nif not bPluginLoaded:\n\tmaya.cmds.confirmDialog(title=\"HDRLightStudio\", message=\"HDRLightStudio Connection Plugin is not currently loaded in Maya\", button=[\"OK\"], defaultButton=\"OK\")\nelse:\n\timport HdrlsShelf\n\treload(HdrlsShelf)\n\tHdrlsShelf.btnShelfLPIllPress()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "LightPaint Rim" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "LightPaint Rim" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "BtnLPRim.png" 
+        -image1 "BtnLPRim.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "bPluginLoaded = maya.cmds.pluginInfo(\"HDRLSConnection\", query=True, loaded=True)\nif not bPluginLoaded:\n\tmaya.cmds.confirmDialog(title=\"HDRLightStudio\", message=\"HDRLightStudio Connection Plugin is not currently loaded in Maya\", button=[\"OK\"], defaultButton=\"OK\")\nelse:\n\timport HdrlsShelf\n\treload(HdrlsShelf)\n\tHdrlsShelf.btnShelfLPRimPress()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 34
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "HDR Light Studio Connection Help" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "HDR Light Studio Connection Help" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "BtnHelp.png" 
+        -image1 "BtnHelp.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "bPluginLoaded = maya.cmds.pluginInfo(\"HDRLSConnection\", query=True, loaded=True)\nif not bPluginLoaded:\n\tmaya.cmds.confirmDialog(title=\"HDRLightStudio\", message=\"HDRLightStudio Connection Plugin is not currently loaded in Maya\", button=[\"OK\"], defaultButton=\"OK\")\nelse:\n\timport HdrlsShelf\n\treload(HdrlsShelf)\n\tHdrlsShelf.btnShelfHelpPress()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "HDR Light Studio Connection Version" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "HDR Light Studio Connection Version" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "BtnVersion.png" 
+        -image1 "BtnVersion.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "bPluginLoaded = maya.cmds.pluginInfo(\"HDRLSConnection\", query=True, loaded=True)\nif not bPluginLoaded:\n\tmaya.cmds.confirmDialog(title=\"HDRLightStudio\", message=\"HDRLightStudio Connection Plugin is not currently loaded in Maya\", button=[\"OK\"], defaultButton=\"OK\")\nelse:\n\timport HdrlsShelf\n\treload(HdrlsShelf)\n\tHdrlsShelf.btnShelfVersionPress()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+
+} 

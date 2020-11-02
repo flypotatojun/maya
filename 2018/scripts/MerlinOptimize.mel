@@ -1,0 +1,625 @@
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+proc MO_UN()
+{
+// Safely remove all "unknown" nodes.
+select -cl;
+string $unknown[] = `lsType "unknown"`;
+string $badNodes[];// will be deleted.
+string $dangerNodes[];// will be print out.
+for ($i=0;$i<(size($unknown)-1);$i++)  {// do not check the last one, "<done>".
+	string $connectedNodes[] = `listConnections $unknown[$i]`;
+	if (!size($connectedNodes)) // lonely (no connections) "unknown" node, safe to delete.
+		$badNodes[size($badNodes)] = $unknown[$i];
+	else  {
+		string $tmp;
+		int $count = 0;
+		for ($tmp in $connectedNodes)  {
+			if (`nodeType $tmp` != "unknown")
+				$count++;
+		}
+		if ($count > 0) // current "unknown" node is connected to some "known" node(s).
+			$dangerNodes[size($dangerNodes)] = $unknown[$i];
+		else // all connected nodes are "unknown", so safe to delete too.
+			$badNodes[size($badNodes)] = $unknown[$i];
+	}
+}
+
+if (size($badNodes))
+	delete $badNodes;
+print "=====================================================================\n";
+print (size($badNodes) + " unknown nodes removed:\n");
+print $badNodes;
+
+if (size($dangerNodes))  {
+	print "Following unknown nodes are connected with some known node(s), check them plese:\n";
+	print $dangerNodes;
+}
+}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+proc MO_UA()
+{
+// Remove all known unwanted custom attributes.
+string $allNodes[] = `ls -dag -mat`;
+string $badAttr[] = {"castGI","receiveGI","staticGI","subdivEnable","subdivDepth","subdivCorner","irradianceMult","diffuseRefl","ilrNormalCamera","occShader","emit","photonEnergy","causticsPhotons","globIllumPhotons","ilrShadowMapping","ilrShadowMapZCutoff","ilrShadowMapFilterRadius","rC_softness_min","rC_softness_max"};
+string $badNodes[];
+string $nodesWA[];//nodes with unwanted attributes
+int $progress = 0;
+int $percentage = 0;
+progressWindow -t "Checking unwanted attributes..." -pr $progress -ii 0 -min 0 -max `size $allNodes`;
+for ($i=0;$i<size($allNodes);$i++) {
+	$progress = $i+1;
+	$percentage = $progress * 100 / size($allNodes);
+	progressWindow -e -pr $progress -st ("Checking, please wait......      " + $percentage + "%");
+	for ($j=0;$j<size($badAttr);$j++) {
+		if (`attributeExists $badAttr[$j] $allNodes[$i]`) {
+			if (`connectionInfo -is ($allNodes[$i] + "." + $badAttr[$j])` || `connectionInfo -id ($allNodes[$i] + "." + $badAttr[$j])`) {
+				$badNodes[size($badNodes)] = $allNodes[$i];
+				break;
+			}
+			else {
+				deleteAttr -at $badAttr[$j] $allNodes[$i];
+				$nodesWA[size($nodesWA)] = $allNodes[$i];
+			}
+		}
+	}
+}
+progressWindow -ep;
+
+print "=====================================================================\n";
+print (size($nodesWA) + " nodes have unwanted custom attributes, which are now removed:\n");
+print $nodesWA;
+
+if (size($badNodes)) {
+	print "Following nodes have unwanted custom attributes connected, check them please:\n";
+	print $badNodes;
+}
+}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+proc MO_UE()
+// Remove all known unwanted expressions.
+{
+string $exp[] = `lsType "expression"`;
+string $badExp[];// will be deleted.
+string $expFilter[] = {"polySplit"}; // expressions with these strings in name will be deleted.
+for ($i=0;$i<(size($exp)-1);$i++)  {// do not check the last one, "<done>".
+	for ($j=0;$j<size($expFilter);$j++) {
+		string $pattern = "*" + $expFilter[$j] + "*";
+		if (`gmatch $exp[$i] $pattern`)
+			$badExp[size($badExp)] = $exp[$i];
+	}
+}
+
+if (size($badExp))
+	delete $badExp;
+print "=====================================================================\n";
+print (size($badExp) + " expressions were deleted:\n");
+print $badExp;
+}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+proc MO_Shdr(int $mode)
+// List or Delete all illegal (those without SG or layeredShader) shaders.
+{
+string $mat[] = `ls -mat`;
+string $badMat[];//shaders without SG or layeredShader
+for ($i=0;$i<size($mat);$i++) {
+	string $SG[] = `listConnections -s 0 -d 1 -t "shadingEngine" $mat[$i]`;
+	string $layeredShader[] = `listConnections -s 0 -d 1 -t "layeredShader" $mat[$i]`;
+	if (!size($SG) && !size($layeredShader) && `nodeType $mat[$i]`!="oceanShader") {//let oceanShader go
+		$badMat[size($badMat)] = $mat[$i];
+		if ($mode)
+			delete $mat[$i];
+	}
+}
+
+//list results
+if ($mode) {
+	print "=====================================================================\n";
+	print (size($badMat) + " shaders are DELETED because they are not connected to any ShadingGroups or layeredShaders:\n");
+	print $badMat;
+}
+else {
+	print "=====================================================================\n";
+	print (size($badMat) + " shaders are not connected to any ShadingGroups or layeredShaders:\n");
+	print $badMat;
+}
+}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+proc MO_Inc(int $mode)
+// Reset all issued incandescence/glowIntensity.
+{
+string $mat[] = `ls -mat`;
+string $incC[];//Shaders with incandescence mapped
+
+for ($i=0;$i<size($mat);$i++) {
+	//Shaders with incandescence attributes connected
+	string $incAttr[] = {"incandescence","incandescenceR","incandescenceG","incandescenceB"};
+	for ($j=0;$j<size($incAttr);$j++) {
+		if (`attributeExists $incAttr[$j] $mat[$i]`) {
+			if (`connectionInfo -id ($mat[$i] + "." + $incAttr[$j])`) {
+				$incC[size($incC)] = $mat[$i];
+				if ($mode) {
+					string $incConnection[] = `listConnections -c 1 -p 1 -s 1 ($mat[$i] + "." + $incAttr[$j])`;
+					disconnectAttr $incConnection[1] $incConnection[0];
+				}
+			}
+			else if ($incAttr[$j] != "incandescence") {
+				float $value = `getAttr ($mat[$i] + "." + $incAttr[$j])`;
+				if ($value != 0) {//not connected but is not black
+					$incC[size($incC)] = $mat[$i];
+					if ($mode)
+						setAttr ($mat[$i] + "." + $incAttr[$j]) 0;
+				}
+			}
+		}
+	}
+	$incC = `stringArrayRemoveDuplicates $incC`;
+}
+
+//list results
+if ($mode) {
+	print "=====================================================================\n";
+	print (size($incC) + " shaders' incandescence are reset to Black and unconnected:\n");
+	print $incC;
+}
+else {
+	print "=====================================================================\n";
+	print (size($incC) + " shaders' incandescence are not black and unconnected:\n");
+	print $incC;
+}
+}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+proc MO_Glw(int $mode)
+// Reset all issued incandescence/glowIntensity.
+{
+string $mat[] = `ls -mat`;
+string $glowN0[];//Shaders with none 0 glow
+
+for ($i=0;$i<size($mat);$i++) {
+	if (`attributeExists "glowIntensity" $mat[$i]`)
+		if (`getAttr ($mat[$i] + ".glowIntensity")` != 0) {
+			$glowN0[size($glowN0)] = $mat[$i];
+			if ($mode)
+				setAttr ($mat[$i] + ".glowIntensity") 0;
+		}
+}
+
+//list results
+if ($mode) {
+	print "=====================================================================\n";
+	print (size($glowN0) + " shaders' glowIntensity are reset to 0:\n");
+	print $glowN0;
+}
+else {
+	print "=====================================================================\n";
+	print (size($glowN0) + " shaders' glowIntensity are not 0, check thenm please:\n");
+	print $glowN0;
+}
+}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+proc MO_LLink(int $mode)
+// Remove all unwanted heavy connections to lightLinker.
+{
+string $LL[] = `ls -typ lightLinker`;
+int $count = 0;
+for ($count=0;$count<size($LL);$count++) {
+	waitCursor -state 1;
+	string $connections[] = `listConnections -c 1 -d 0 -s 1 $LL[$count]`;
+	waitCursor -state 0;
+
+	if (!$mode) {
+		//
+		//Check all the input connections to current lightLinker
+		//
+		if (size($connections)) {
+
+			string $linkLights[];
+			string $ignoreLights[];
+
+			int $progress = 0;
+			int $percentage = 0;
+			progressWindow -t ("Checking connections to " + $LL[$count] + "...") -pr $progress -ii 0 -min 0 -max `size $connections`;
+
+			for ($i=0;$i<size($connections);$i++) {
+				$progress = $i;
+				$percentage = $progress * 100 / size($connections);
+				progressWindow -e -pr $progress -st ("Checking, please wait......      " + $percentage + "%");
+
+				if (size(`match $LL[$count] $connections[$i]`)) { // consider connections from lightLinker's view
+					string $current = match ("\\[[0-9]+\\]", $connections[$i]);
+					$current = match ("[0-9]+", $current);
+					int $cNum = $current;
+					if (size(`match "link" $connections[$i]`) > 0) // link's connection...
+					{
+						string $litS = `connectionInfo -sfd ($LL[$count] + ".link[" + $cNum + "].light")`;
+						string $objS = `connectionInfo -sfd ($LL[$count] + ".link[" + $cNum + "].object")`;
+
+						if (size($litS) && size($objS)) {
+							int $k = 0;
+							for ($k=0;$k<size($linkLights);$k++) {
+								string $tmpA[];
+								tokenize $linkLights[$k] ";" $tmpA;
+								if ($tmpA[0] == `substitute "\\.message" $litS ""`) {
+									$linkLights[$k] = $linkLights[$k] + ";" + `substitute "\\.message" $objS ""`;
+									break;
+								}
+							}
+							if ($k == size($linkLights)) {
+								$linkLights[size($linkLights)] = `substitute "\\.message" $litS ""` + ";" + `substitute "\\.message" $objS ""`;
+							}
+							disconnectAttr $litS ($LL[$count] + ".link[" + $cNum + "].light");
+							disconnectAttr $objS ($LL[$count] + ".link[" + $cNum + "].object");
+						}
+						else if (size($litS))
+							disconnectAttr $litS ($LL[$count] + ".link[" + $cNum + "].light");
+						else if (size($objS))
+							disconnectAttr $objS ($LL[$count] + ".link[" + $cNum + "].object");
+					}
+					else // ignore's connection...
+					{
+						string $litIS = `connectionInfo -sfd ($LL[$count] + ".ignore[" + $cNum + "].lightIgnored")`;
+						string $objIS = `connectionInfo -sfd ($LL[$count] + ".ignore[" + $cNum + "].objectIgnored")`;
+
+						if (size($litIS) && size($objIS)) {
+							int $k = 0;
+							for ($k=0;$k<size($ignoreLights);$k++) {
+								string $tmpA[];
+								tokenize $ignoreLights[$k] ";" $tmpA;
+								if ($tmpA[0] == `substitute "\\.message" $litIS ""`) {
+									$ignoreLights[$k] = $ignoreLights[$k] + ";" + `substitute "\\.message" $objIS ""`;
+									break;
+								}
+							}
+							if ($k == size($ignoreLights)) {
+								$ignoreLights[size($ignoreLights)] = `substitute "\\.message" $litIS ""` + ";" + `substitute "\\.message" $objIS ""`;
+							}
+							disconnectAttr $litIS ($LL[$count] + ".ignore[" + $cNum + "].lightIgnored");
+							disconnectAttr $objIS ($LL[$count] + ".ignore[" + $cNum + "].objectIgnored");
+						}
+						else if (size($litIS))
+							disconnectAttr $litIS ($LL[$count] + ".ignore[" + $cNum + "].lightIgnored");
+						else if (size($objIS))
+							disconnectAttr $objIS ($LL[$count] + ".ignore[" + $cNum + "].objectIgnored");
+					}
+				}
+			}
+			progressWindow -ep;
+
+
+			//
+			//Rebuild all the link connections to current lightLinker
+			//
+			if (size($linkLights)) {
+				int $progress = 0;
+				int $percentage = 0;
+				progressWindow -t "Rebuilding link connections..." -pr $progress -ii 0 -min 0 -max `size $linkLights`;
+
+				for ($m=0;$m<size($linkLights);$m++) {
+					$progress = $m;
+					$percentage = $progress * 100 / size($linkLights);
+					progressWindow -e -pr $progress -st ("Re-Connecting, please wait......      " + $percentage + "%");
+
+					string $linkObjects[];
+					tokenize $linkLights[$m] ";" $linkObjects;
+					for ($mm=1;$mm<size($linkObjects);$mm++)
+						lightlink -make -light $linkObjects[0] -object $linkObjects[$mm];
+				}
+				progressWindow -ep;
+			}
+
+			//
+			//Rebuild all the ignore connections to current lightLinker
+			//
+			if (size($ignoreLights)) {
+				int $progress = 0;
+				int $percentage = 0;
+				progressWindow -t "Rebuilding ignore connections..." -pr $progress -ii 0 -min 0 -max `size $ignoreLights`;
+
+				for ($n=0;$n<size($ignoreLights);$n++) {
+					$progress = $n;
+					$percentage = $progress * 100 / size($ignoreLights);
+					progressWindow -e -pr $progress -st ("Re-Connecting, please wait......      " + $percentage + "%");
+
+					string $ignoreObjects[];
+					tokenize $ignoreLights[$n] ";" $ignoreObjects;
+					for ($nn=1;$nn<size($ignoreObjects);$nn++)
+						lightlink -break -light $ignoreObjects[0] -object $ignoreObjects[$nn];
+				}
+				progressWindow -ep;
+			}
+		}
+	print "=====================================================================\n";
+	string $newLinks[] = `listConnections -d 0 -s 1 $LL[$count]`;
+	print (size($connections)/2 + " links to " + $LL[$count] + " are now optimized to " + size($newLinks) + " links.\n");
+	}
+
+	else {
+		//
+		//Check all the input connections to current lightLinker
+		//
+		if (size($connections)) {
+
+			int $progress = 0;
+			int $percentage = 0;
+			progressWindow -t ("Checking connections to " + $LL[$count] + "...") -pr $progress -ii 0 -min 0 -max `size $connections`;
+
+			for ($i=0;$i<size($connections);$i++) {
+				$progress = $i;
+				$percentage = $progress * 100 / size($connections);
+				progressWindow -e -pr $progress -st ("Checking, please wait......      " + $percentage + "%");
+
+				if (size(`match $LL[$count] $connections[$i]`)) {
+					string $S = `connectionInfo -sfd $connections[$i]`;
+					if (size($S))
+							disconnectAttr $S $connections[$i];
+				}
+			}
+			progressWindow -ep;
+		}
+	}
+}
+
+if ($mode) {
+	sets -fe defaultLightSet `listTransforms -lt`;
+	string $SG[] = `ls -et "shadingEngine"`;
+	for ($i=0;$i<size($SG);$i++)
+		lightlink -make -light defaultLightSet -object $SG[$i];
+
+	print "=====================================================================\n";
+	print (size($SG)*2 + " links established.\n");
+}
+
+}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+proc string MO_Tail(string $path)
+{
+string $tmp[];
+tokenize $path "|" $tmp;
+return $tmp[size($tmp)-1];
+}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+global proc MO(int $mode, string $content[])
+{
+print "\n\n*********************************************************************\n";
+print "Merlin Optimization starts......\n";
+print "*********************************************************************\n";
+
+int $renderNodeO = 0;
+
+if ($mode) {//single optimize
+//$content[0] - what to optimize
+//$content[1] - radioCollection control
+//$content[2] - second selection
+	int $sl = 0;
+	if (size($content) > 1) {
+		string $slCtrl = `radioCollection -q -sl $content[1]`;
+	if ($slCtrl == $content[2])
+			$sl = 1;
+	}
+	switch ($content[0]) {
+		case "UN":
+			MO_UN;
+			break;
+		case "UA":
+			MO_UA;
+			break;
+		case "UE":
+			MO_UE;
+			break;
+		case "Shdr":
+			MO_Shdr($sl);
+			if ($sl)
+				$renderNodeO = 1;
+			break;
+		case "Inc":
+			MO_Inc($sl);
+			if ($sl)
+				$renderNodeO = 1;
+			break;
+		case "Glw":
+			MO_Glw($sl);
+			break;
+		case "LLink":
+			MO_LLink($sl);
+			break;
+	}
+}
+else {//batch mode
+//$content[0] - UN checkBox;
+//$content[1] - UA checkBox;
+//$content[2] - UE checkBox;
+//$content[3.4.5] - Shdr checkBox
+//					Shdr radioCollection
+//					Shdr radioButton
+//$content[6.7.8] - Inc checkBox;
+//					Inc radioCollection;
+//					Inc radioButton
+//$content[9.10.11] - 	Glw checkBox;
+//						Glw radioCollection
+//						Glw radioButton
+//$content[12.13.14] - 	LLink checkBox;
+//						LLink radioCollection;
+//						LLInk radioButton
+	int $sl = 0;
+
+	if (`checkBox -q -v $content[0]`)
+		MO_UN;
+	if (`checkBox -q -v $content[1]`)
+		MO_UA;
+	if (`checkBox -q -v $content[2]`)
+		MO_UE;
+	if (`checkBox -q -v $content[3]`) {
+		if (`radioCollection -q -sl $content[4]` == $content[5]) {
+			$sl = 1;
+			$renderNodeO = 1;
+		}
+		MO_Shdr($sl);
+		$sl = 0;
+	}
+	if (`checkBox -q -v $content[6]`) {
+		if (`radioCollection -q -sl $content[7]` == $content[8]) {
+			$sl = 1;
+			$renderNodeO = 1;
+		}
+		MO_Inc($sl);
+		$sl = 0;
+	}
+	if (`checkBox -q -v $content[9]`) {
+		if (`radioCollection -q -sl $content[10]` == $content[11])
+			$sl = 1;
+		MO_Glw($sl);
+		$sl = 0;
+	}
+	if (`checkBox -q -v $content[12]`) {
+		if (`radioCollection -q -sl $content[13]` == $content[14])
+			$sl = 1;
+		MO_LLink($sl);
+		$sl = 0;
+	}
+}
+
+if ($renderNodeO) {
+	print "=====================================================================\n";
+	print "Removing unused rendering nodes......:";
+	MLdeleteUnused;
+}
+
+confirmDialog -t " 清 理 成 功 "
+	-m " 清 理 结 束 ， 按 ok 退 出 "
+	-ma center
+	-b "OK";
+
+print "\n=====================================================================\n";
+print "*********************************************************************\n";
+print "Merlin Optimization finished.\n";
+print "*********************************************************************\n";
+}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+global proc MerlinOptimize()
+{
+windowPref -enableAll 0;
+
+if (`window -exists MOWindow`) deleteUI MOWindow;
+
+window -t "删除废节点工具" -wh 350 600 -mnb 0 -mxb 0 MOWindow;
+string $mainForm = `formLayout -nd 100`;
+	string $oColumn = `columnLayout -adj 1 -rs 1`;
+
+		string $uNC = `checkBox -l "安全删除未知Nodes节点" -al left -v 1`;
+		string $uNB = `button -l " 开 始 清 理 "  -bgc .5 .5 .5 -c "MO(1,{\"UN\"})"`;
+		checkBox -e -onc ("button -e -en 1 "+$uNB) -ofc ("button -e -en 0 "+$uNB) $uNC;
+
+		separator -h 10 -st "in";
+
+		string $uAC = `checkBox -l "删除所有已知的不必要的自定义属性" -al left -v 1`;
+		string $uAB = `button -l " 开 始 清 理 " -bgc .5 .5 .5 -c "MO(1,{\"UA\"})"`;
+		checkBox -e -onc ("button -e -en 1 "+$uAB) -ofc ("button -e -en 0 "+$uAB) $uAC;
+
+		separator -h 10 -st "in";
+
+		string $uEC = `checkBox -l "删除所有已知的有害的表达式" -al left -v 1`;
+		string $uEB = `button -l " 开 始 清 理 " -bgc .5 .5 .5 -c "MO(1,{\"UE\"})"`;
+		checkBox -e -onc ("button -e -en 1 "+$uEB) -ofc ("button -e -en 0 "+$uEB) $uEC;
+
+		separator -h 10 -st "in";
+
+		string $shdrC = `checkBox -v 1 -al left -l "没有关联 SG or layeredShader 的材质球"`;
+		string $shdr = `radioCollection`;
+			string $listShdrR = `radioButton -l "罗列出来" -al left`;
+			string $removeShdrR = `radioButton -l "删除 + 罗列" -al left`;
+		radioCollection -e -sl $removeShdrR $shdr;
+		string $shdrB = `button -l " 开 始 清 理 " -bgc .5 .5 .5 -c ("MO(1,{\"Shdr\",\""+$shdr+"\",\""+MO_Tail($removeShdrR)+"\"})")`;
+		checkBox -e -onc ("radioButton -e -en 1 "+$listShdrR+"; radioButton -e -en 1 "+$removeShdrR+"; button -e -en 1 "+$shdrB+";")
+			-ofc ("radioButton -e -en 0 "+$listShdrR+"; radioButton -e -en 0 "+$removeShdrR+"; button -e -en 0 "+$shdrB+";") $shdrC;
+
+		separator -h 10 -st "in";
+
+		string $incC = `checkBox -v 1 -al left -l "调整材质球的 incandescence 属性"`;
+		string $inc = `radioCollection`;
+			string $listIncR = `radioButton -l "罗列出来" -al left`;
+			string $resetIncR = `radioButton -l "归零 + 罗列" -al left`;
+		radioCollection -e -sl $resetIncR $inc;
+		string $incB = `button -l " 开 始 清 理 " -bgc .5 .5 .5 -c ("MO(1,{\"Inc\",\""+$inc+"\",\""+MO_Tail($resetIncR)+"\"})")`;
+		checkBox -e -onc ("radioButton -e -en 1 "+$listIncR+"; radioButton -e -en 1 "+$resetIncR+"; button -e -en 1 "+$incB+";")
+			-ofc ("radioButton -e -en 0 "+$listIncR+"; radioButton -e -en 0 "+$resetIncR+"; button -e -en 0 "+$incB+";") $incC;
+
+		separator -h 10 -st "in";
+
+		string $glwC = `checkBox -v 1 -al left -l "调整材质球的 glowIntensity 属性"`;
+		string $glw = `radioCollection`;
+			string $listGlwR = `radioButton -l "罗列出来" -al left`;
+			string $resetGlwR = `radioButton -l "归零 + 罗列" -al left`;
+		radioCollection -e -sl $resetGlwR $glw;
+		string $glwB = `button -l " 开 始 清 理 " -bgc .5 .5 .5 -c ("MO(1,{\"Glw\",\""+$glw+"\",\""+MO_Tail($resetGlwR)+"\"})")`;
+		checkBox -e -onc ("radioButton -e -en 1 "+$listGlwR+"; radioButton -e -en 1 "+$resetGlwR+"; button -e -en 1 "+$glwB+";")
+			-ofc ("radioButton -e -en 0 "+$listGlwR+"; radioButton -e -en 0 "+$resetGlwR+"; button -e -en 0 "+$glwB+";") $glwC;
+
+		separator -h 10 -st "in";
+
+		string $lLinkC = `checkBox -v 1 -al left -l "灯光节点"`;
+		string $lLink = `radioCollection`;
+			string $cleanLLR = `radioButton -l "清楚所有灯光废节点" -al left`;
+			string $removeLLR = `radioButton -l "删除所有无用灯光" -al left`;
+		radioCollection -e -sl $cleanLLR $lLink;
+		string $lLinkB = `button -l " 开 始 清 理 " -bgc .5 .5 .5 -c ("MO(1,{\"LLink\",\""+$lLink+"\",\""+MO_Tail($removeLLR)+"\"})")`;
+		checkBox -e -onc ("radioButton -e -en 1 "+$cleanLLR+"; radioButton -e -en 1 "+$removeLLR+"; button -e -en 1 "+$lLinkB+";")
+			-ofc ("radioButton -e -en 0 "+$cleanLLR+"; radioButton -e -en 0 "+$removeLLR+"; button -e -en 0 "+$lLinkB+";") $lLinkC;
+
+	setParent ..;
+
+	string $eForm = `formLayout -nd 100`;
+		string $cmd = "MO(0,{"
+					+ "\"" + $uNC 					+ "\","
+					+ "\"" + $uAC 					+ "\","
+					+ "\"" + $uEC 					+ "\","
+					+ "\"" + $shdrC 				+ "\","
+					+ "\"" + $shdr 					+ "\","
+					+ "\"" + MO_Tail($removeShdrR) 	+ "\","
+					+ "\"" + $incC 					+ "\","
+					+ "\"" + $inc 					+ "\","
+					+ "\"" + MO_Tail($resetIncR) 	+ "\","
+					+ "\"" + $glwC 					+ "\","
+					+ "\"" + $glw 					+ "\","
+					+ "\"" + MO_Tail($resetGlwR) 	+ "\","
+					+ "\"" + $lLinkC 				+ "\","
+					+ "\"" + $lLink 				+ "\","
+					+ "\"" + MO_Tail($removeLLR) 	+ "\"})";
+		string $b1 = `button -l " 统 一 清 理 " -h 50 -bgc .8 .8 .8 -c $cmd`;
+		string $b2 = `button -l " 关 闭 "  -h 50 -bgc .8 .1 .1 -c "if (`window -exists MOWindow`) deleteUI MOWindow;"`;
+	formLayout -e
+		-af $b1 left 2 -af $b1 top 2
+		-af $b1 bottom 2 -ap $b1 right 1 50
+		-af $b2 right 2 -ap $b2 left 1 50
+		-af $b2 top 2 -af $b2 bottom 2
+		$eForm;
+
+formLayout -e
+	-af $oColumn left 40 -af $oColumn right 40
+	-af $oColumn top 10  -af $oColumn bottom 40
+	-af $eForm left 2 -af $eForm right 2
+	-ac $eForm top 2 $oColumn -af $eForm bottom 2
+	$mainForm;
+
+showWindow MOWindow;
+
+windowPref -enableAll 1;
+}

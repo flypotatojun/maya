@@ -1,0 +1,78 @@
+global proc shelf_CK_UE () {
+    global string $gBuffStr;
+    global string $gBuffStr0;
+    global string $gBuffStr1;
+
+
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "#developed by Jingtian Li, Free to use and modify\nimport maya.cmds as mc\nwindowID = \"CameraWindowID\"\nif mc.window(windowID, q= True, exists = True):\n    mc.deleteUI(windowID)\n\nmc.window(windowID,rtf = True, wh = (50,50), title = \"Unreal Camera Generator\")\nmc.showWindow(windowID)\nPrimaryLayout = mc.columnLayout()\nInfoGatherLayout = mc.rowColumnLayout(nc = 3)\nmc.text(l = \"Camera To Export: \")\ncameraNameTextField = mc.textField(w = 300)\ncamerAssignBtn = mc.button(l = \"<<<\", c = \"CameraAssignBtnCmd()\")\nmc.setParent(PrimaryLayout)\nmc.rowColumnLayout(nc = 7, cw = (50,50))\nmc.text(l = \"PositionOffset:   \")\nmc.text(l = \"X:\")\nXOffset = mc.floatField()\nmc.text(l = \"     Y:\")\nYOffset = mc.floatField()\nmc.text(l = \"      Z:\")\nZOffset = mc.floatField()\nmc.setParent(PrimaryLayout)\nmc.rowColumnLayout(nc = 3)\nCreateButton = mc.button(l = \"Create\", w= 200, c = \"createCameraBtnCmd()\")\nmc.separator(w = 20, style = \"none\")\nCancelButton = mc.button(l = \"cancel\", w= 200)\n\ndef getSelection():\n    selection = mc.ls(sl = True)[0]\n    return selection\n    \ndef setTextField(textFieldToSet, Value):\n    mc.textField(textFieldToSet, e = True, text = Value)\n    \ndef CameraAssignBtnCmd():\n    cam = getSelection()\n    setTextField(cameraNameTextField, cam)\n\ndef createCameraBtnCmd():\n    origionalCam = mc.textField(cameraNameTextField, q = True, text = True)\n    ExportCam = mc.camera(n = \"Camera_To_Export\")[0]\n    \n    XOffsetValue = mc.floatField(XOffset, q = True, v = True)\n    YOffsetValue = mc.floatField(YOffset, q = True, v = True)\n    ZOffsetValue = mc.floatField(ZOffset, q = True, v = True)\n    \n    pointConst = mc.pointConstraint(origionalCam, ExportCam, mo = False)[0]\n    \n    mc.setAttr(pointConst + \".offsetX\", XOffsetValue)\n    mc.setAttr(pointConst + \".offsetZ\", YOffsetValue)\n    mc.setAttr(pointConst + \".offsetY\", ZOffsetValue)\n    \n    orientConst = mc.orientConstraint(origionalCam, ExportCam, mo = False)[0]\n    mc.setAttr(orientConst + \".offsetY\", 90)\n " 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "#developed by Jingtian Li, Free to use and modify\nimport maya.cm..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "ExCam" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "#developed by Jingtian Li, Free to use and modify\nimport maya.cmds as mc\nwindowID = \"CameraWindowID\"\nif mc.window(windowID, q= True, exists = True):\n    mc.deleteUI(windowID)\n\nmc.window(windowID,rtf = True, wh = (50,50), title = \"Unreal Camera Generator\")\nmc.showWindow(windowID)\nPrimaryLayout = mc.columnLayout()\nInfoGatherLayout = mc.rowColumnLayout(nc = 3)\nmc.text(l = \"Camera To Export: \")\ncameraNameTextField = mc.textField(w = 300)\ncamerAssignBtn = mc.button(l = \"<<<\", c = \"CameraAssignBtnCmd()\")\nmc.setParent(PrimaryLayout)\nmc.rowColumnLayout(nc = 7, cw = (50,50))\nmc.text(l = \"PositionOffset:   \")\nmc.text(l = \"X:\")\nXOffset = mc.floatField()\nmc.text(l = \"     Y:\")\nYOffset = mc.floatField()\nmc.text(l = \"      Z:\")\nZOffset = mc.floatField()\nmc.setParent(PrimaryLayout)\nmc.rowColumnLayout(nc = 3)\nCreateButton = mc.button(l = \"Create\", w= 200, c = \"createCameraBtnCmd()\")\nmc.separator(w = 20, style = \"none\")\nCancelButton = mc.button(l = \"cancel\", w= 200)\n\ndef getSelection():\n    selection = mc.ls(sl = True)[0]\n    return selection\n    \ndef setTextField(textFieldToSet, Value):\n    mc.textField(textFieldToSet, e = True, text = Value)\n    \ndef CameraAssignBtnCmd():\n    cam = getSelection()\n    setTextField(cameraNameTextField, cam)\n\ndef createCameraBtnCmd():\n    origionalCam = mc.textField(cameraNameTextField, q = True, text = True)\n    ExportCam = mc.camera(n = \"Camera_To_Export\")[0]\n    \n    XOffsetValue = mc.floatField(XOffset, q = True, v = True)\n    YOffsetValue = mc.floatField(YOffset, q = True, v = True)\n    ZOffsetValue = mc.floatField(ZOffset, q = True, v = True)\n    \n    pointConst = mc.pointConstraint(origionalCam, ExportCam, mo = False)[0]\n    \n    mc.setAttr(pointConst + \".offsetX\", XOffsetValue)\n    mc.setAttr(pointConst + \".offsetZ\", YOffsetValue)\n    mc.setAttr(pointConst + \".offsetY\", ZOffsetValue)\n    \n    orientConst = mc.orientConstraint(origionalCam, ExportCam, mo = False)[0]\n    mc.setAttr(orientConst + \".offsetY\", 90)\n " 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "if(`window -exists baicha`){deleteUI -window baicha;};\n window \n\n-widthHeight 1000 500 -title \"动画导出插件\" \n baicha;\n \n   columnLayout;\n frameLayout -collapsable true -l\"约束\" -width 500;\n rowColumnLayout -nc 3 ;\n button  -w 170 -h 50 -l \"吸附约束\"  -c\"create_Con\";\n button  -w 170 -h 50-l \"父子约束\"  -c\"create_parent\";\n button  -w 170 -h 50-l \"删除约束\"  -c\"DeleteCons\";\n \n \n  setParent ..;\n setParent ..;\n \n    columnLayout;\n frameLayout -collapsable true -l\"动画和空间域名\" -width 500;\n rowColumnLayout -nc 2 ;\n button  -w 250 -h 50-l \"烘焙动画\"  -c\"Bake_an\";\n button  -w 250 -h 50-l \"删除空间域名\"  -c\"removeAllNameSpace\";\n \n\n    setParent ..;\n setParent ..;\n \n \n columnLayout;\n frameLayout -collapsable true -l\"创建骨骼\" -w 500 ;\n rowColumnLayout -nc 3 ;\n\t\ttextField -tx \"\" -annotation \"请输入相应的名称!\" Join;\n\t\tbutton -l \"创建骨骼\" -w 200 -h 50 -c \"create_JOIN\";\n\t\t\tsetParent ..;\n\t\t\tsetParent ..;\n \n     columnLayout;\n frameLayout -collapsable true -l\"导出\" -width 500;\n \n button  -w 150 -h 50-l \"导出\"  -c\"Export\";\n \n\n    setParent ..;\n setParent ..;\n \n \n \n \n \n showWindow baicha;\n \n \n \n \n   global proc create_JOIN()\n{\n \n string $Join_name =`textField -q -tx Join`;\n \n string $gg=`joint -p 0 0 0 `;\n\nrename $gg $Join_name;\n \n }\n \n  global proc create_Con()\n{\n\ndoCreateParentConstraintArgList 1 { \"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"1\",\"\",\"1\" };\nparentConstraint -weight 1;\n}\n\n\n  global proc create_parent()\n{\n\ndoCreateParentConstraintArgList 1 { \"1\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"1\",\"\",\"1\" };\nparentConstraint -mo -weight 1;\n}\n\n  global proc Bake_an()\n{\n\ndoBakeSimulationArgList 9 { \"1\",\"0\",\"10\",\"1\",\"0\",\"0\",\"1\",\"1\",\"0\",\"1\",\"animationList\",\"0\",\"0\",\"0\",\"0\",\"0\",\"1\",\"0\" };\n}\n\n\n  global proc DeleteCons()\n{\n\nDeleteConstraints;\n} \n\n\n\n  global proc Export()\n{\n\nExportSelection;\n} \n\n\n///删除所有名字空间\nglobal proc string removeAllNameSpace()\n{\n\tstring $nameSpaces[]=`namespaceInfo -listOnlyNamespaces`;\n\tstring $items[] = { \"shared\", \"UI\"};\n\tstring $diff[] = stringArrayRemove($items, $nameSpaces);\n\tif(size($diff)>0)\n\t{\n\t\tfor($i in $diff)\n\t\t{\n\t\t\tnamespace -mergeNamespaceWithRoot -removeNamespace $i ;\n\t\t\tprint ($i +\"被删除\\n\");\n\t\t}\n\t\tremoveAllNameSpace();\n\t}\n\treturn \"success\";\n}\n\n\n" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "if(`window -exists baicha`){deleteUI -window baicha;};\n window \n..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "ExAni" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "commandButton.png" 
+        -image1 "commandButton.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "if(`window -exists baicha`){deleteUI -window baicha;};\n window \n\n-widthHeight 1000 500 -title \"动画导出插件\" \n baicha;\n \n   columnLayout;\n frameLayout -collapsable true -l\"约束\" -width 500;\n rowColumnLayout -nc 3 ;\n button  -w 170 -h 50 -l \"吸附约束\"  -c\"create_Con\";\n button  -w 170 -h 50-l \"父子约束\"  -c\"create_parent\";\n button  -w 170 -h 50-l \"删除约束\"  -c\"DeleteCons\";\n \n \n  setParent ..;\n setParent ..;\n \n    columnLayout;\n frameLayout -collapsable true -l\"动画和空间域名\" -width 500;\n rowColumnLayout -nc 2 ;\n button  -w 250 -h 50-l \"烘焙动画\"  -c\"Bake_an\";\n button  -w 250 -h 50-l \"删除空间域名\"  -c\"removeAllNameSpace\";\n \n\n    setParent ..;\n setParent ..;\n \n \n columnLayout;\n frameLayout -collapsable true -l\"创建骨骼\" -w 500 ;\n rowColumnLayout -nc 3 ;\n\t\ttextField -tx \"\" -annotation \"请输入相应的名称!\" Join;\n\t\tbutton -l \"创建骨骼\" -w 200 -h 50 -c \"create_JOIN\";\n\t\t\tsetParent ..;\n\t\t\tsetParent ..;\n \n     columnLayout;\n frameLayout -collapsable true -l\"导出\" -width 500;\n \n button  -w 150 -h 50-l \"导出\"  -c\"Export\";\n \n\n    setParent ..;\n setParent ..;\n \n \n \n \n \n showWindow baicha;\n \n \n \n \n   global proc create_JOIN()\n{\n \n string $Join_name =`textField -q -tx Join`;\n \n string $gg=`joint -p 0 0 0 `;\n\nrename $gg $Join_name;\n \n }\n \n  global proc create_Con()\n{\n\ndoCreateParentConstraintArgList 1 { \"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"1\",\"\",\"1\" };\nparentConstraint -weight 1;\n}\n\n\n  global proc create_parent()\n{\n\ndoCreateParentConstraintArgList 1 { \"1\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"1\",\"\",\"1\" };\nparentConstraint -mo -weight 1;\n}\n\n  global proc Bake_an()\n{\n\ndoBakeSimulationArgList 9 { \"1\",\"0\",\"10\",\"1\",\"0\",\"0\",\"1\",\"1\",\"0\",\"1\",\"animationList\",\"0\",\"0\",\"0\",\"0\",\"0\",\"1\",\"0\" };\n}\n\n\n  global proc DeleteCons()\n{\n\nDeleteConstraints;\n} \n\n\n\n  global proc Export()\n{\n\nExportSelection;\n} \n\n\n///删除所有名字空间\nglobal proc string removeAllNameSpace()\n{\n\tstring $nameSpaces[]=`namespaceInfo -listOnlyNamespaces`;\n\tstring $items[] = { \"shared\", \"UI\"};\n\tstring $diff[] = stringArrayRemove($items, $nameSpaces);\n\tif(size($diff)>0)\n\t{\n\t\tfor($i in $diff)\n\t\t{\n\t\t\tnamespace -mergeNamespaceWithRoot -removeNamespace $i ;\n\t\t\tprint ($i +\"被删除\\n\");\n\t\t}\n\t\tremoveAllNameSpace();\n\t}\n\treturn \"success\";\n}\n\n\n" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+
+} 

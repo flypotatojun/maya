@@ -1,0 +1,264 @@
+//Script Name: Arnold Ass Manager
+//Author:      luo jun
+//Email:       junvfx@foxmail.com
+//Update:      2016-6
+global proc AAM_MainWindow(string $targentPath)
+{
+    if (`window -exists aam_win`){deleteUI aam_win;}
+
+string $window = `window -title "Arnold Ass Manager v0.1    by luojun" aam_win`;
+        formLayout -nd 100 MainForm;
+            string $AAM_column = `columnLayout -columnAttach "both" 30 -adj 1 -rowSpacing 10`;
+                button -l "分析场景ASS" -h 30 analyseButton;
+                setParent MainForm;
+            string $AAM_scroll = `scrollLayout -cr true analyseScroll`;
+                string $AAM_scrollColumn = `columnLayout analyseScrollColumn`;
+                    text -l "显示分析结果" -al "left" analyseResult;
+                    button -e -c ("AAM_AnalyseAss " + $AAM_scrollColumn ) ($AAM_column + "|analyseButton");
+                    setParent MainForm;
+            string $AAM_column1 = `columnLayout -columnAttach "both" 30 -adj 1 -rowSpacing 10`;
+                textFieldButtonGrp -cal 1 "right" -cw 1 50 -adj 2 -label "目标路径" -tx $targentPath -buttonLabel "..." -buttonCommand "AAM_GetPath" targentDir;
+                setParent MainForm;
+            string $AAM_formLayout = `formLayout bottomForm`;
+                string $bt0 = `button -l "复制Ass" -ann "复制Ass文件到目标路径" -c "AAM_CopyAss"`;
+                string $bt1 = `button -l "修改路径" -ann "修改勾选的ass代理路径为目标路径" -c "AAM_ReplaceDir"`;
+                string $bt2 = `button -l "打开路径" -ann "打开目标路径文件夹" -c "AAM_OpenPath"`;
+                string $bt3 = `button -l "重置窗口" -c "AAM_RebuildUI"`;
+                string $bt4 = `button -l "使用必看" -c "AAM_Help"`;
+                setParent MainForm;
+                formLayout -e
+                 -af $bt0 "left" 0
+                 -ac $bt0 "right" 2 $bt1
+                 -af $bt0 "top" 0
+                 -af $bt0 "bottom" 0
+                 -ap $bt1 "left" 0 20
+                 -ac $bt1 "right" 2 $bt2 
+                 -af $bt1 "top" 0
+                 -af $bt1 "bottom" 0
+                 -ap $bt2 "left" 0 40
+                 -ac $bt2 "right" 2 $bt3 
+                 -af $bt2 "top" 0
+                 -af $bt2 "bottom" 0
+                 -ap $bt3 "left" 0 60
+                 -ac $bt3 "right" 2 $bt4
+                 -af $bt3 "top" 0
+                 -af $bt3 "bottom" 0
+                 -ap $bt4 "left" 0 80
+                 -af $bt4 "right" 0
+                 -af $bt4 "top" 0
+                 -af $bt4 "bottom" 0
+                 bottomForm;
+         formLayout -e
+             -af $AAM_column "top" 5
+             -ap $AAM_column "bottom" 1 10
+             -af $AAM_column "left" 5
+             -af $AAM_column "right" 5
+             -ac $AAM_scroll "top" 5 $AAM_column
+             -af $AAM_scroll "bottom" 70
+             -af $AAM_scroll "right" 0
+             -af $AAM_scroll "left" 0
+             -ac $AAM_column1 "top" 1 $AAM_scroll
+             -af $AAM_column1 "bottom" 100
+             -af $AAM_column1 "left" 0
+             -af $AAM_column1 "right" 0 
+             -ac $AAM_formLayout "top" 0 $AAM_column1
+             -af $AAM_formLayout "bottom" 2
+             -af $AAM_formLayout "left" 0
+             -af $AAM_formLayout "right" 0
+             MainForm;
+    setParent ..;          
+    showWindow;
+}
+global proc AAM_AnalyseAss(string $AAM_ParentUI)
+{
+    string $assGroups[] = `AAM_CheckAssPath`;
+    if (`columnLayout -q -ex ($AAM_ParentUI +"|analyseCheckcolumnLayout")`){deleteUI ($AAM_ParentUI +"|analyseCheckcolumnLayout");}
+    if(size($assGroups)==0)
+        {text -e -l "没有ASS代理" -al "left" analyseResult;}
+    else
+    {
+        
+        text -e -l "场景分析结果：" -al "left" analyseResult;
+        setParent analyseScrollColumn;
+        columnLayout analyseCheckcolumnLayout;
+            text -l ("\n一共 " + size(`ls -type "aiStandIn"`) + " 个ass代理，有 " + (size($assGroups)-1) +" 个存放位置\n");
+            for( $assProxy in $assGroups)
+            {
+                string $buffer[];
+                string $selectAssList="";
+                int $tokenizeNum = `tokenize $assProxy "*" $buffer`;
+                //添加复选框和点击事件
+                for($a = 1;$a<$tokenizeNum;$a++)
+                {$selectAssList = $selectAssList + $buffer[$a] + " ";}
+                if($buffer[0] == "AAM_Empty"&&size($buffer[1])!=0)
+                {checkBox -l ("Ass Path为空数量：" + ($tokenizeNum-1)) -onc ("select -add " + $selectAssList)
+                         -ofc ("select -d " + $selectAssList);
+                }
+                else if($buffer[0] != "AAM_Empty")
+                {
+                checkBox -l ("Ass数量：" + ($tokenizeNum-1) + "  ===>>  " + $buffer[0]) -onc ("select -add " + $selectAssList)
+                         -ofc ("select -d " + $selectAssList);
+                }
+                    
+            }
+    }
+}
+global proc string[] AAM_CheckAssPath()
+{
+    string $assFile[] = `ls -type "aiStandIn"`;
+    
+    string $assGroups[];
+    int $assGroupSize;
+    
+    if(size($assFile))
+    {
+          $assGroups[0] = "AAM_Empty";
+    //    $assGroups[1] = "AAM_EmptyPath";
+    }
+    for( $eachAss in $assFile)
+    {
+        $assGroupSize = size($assGroups);
+        string $assFileFullPath = `getAttr ($eachAss+".dso")`;
+        string $assFileCurrentPath = `dirname $assFileFullPath`;
+        
+        if(size($assFileCurrentPath))
+        {
+            for( $j = 1; $j<$assGroupSize; $j++)
+            {
+                string $buffer[];
+                tokenize $assGroups[$j] "*" $buffer;
+                string $oldPath = $buffer[0];
+                //if hava same the path add new ass to current group
+                if($oldPath == $assFileCurrentPath)
+                {
+                    string $temp = $assGroups[$j];
+                    $temp += "*" + $eachAss;
+                    $assGroups[$j] = $temp;
+                    break;
+                }
+            }
+            //No group match means new group was found
+            if($j>=$assGroupSize)
+            {
+                $assGroups[$assGroupSize] = $assFileCurrentPath + "*" + $eachAss;
+                continue;
+            }
+         }
+         //ass node exist but path is empty
+         else
+         {
+             string $buffer[];
+             tokenize $assGroups[0] "*" $buffer;
+             $assGroups[0] = $assGroups[0] + "*" + $eachAss;
+         }
+       
+        
+    }
+    return $assGroups;
+}
+//get the targent path
+global proc AAM_GetPath()
+{
+    string $newPath[] = `fileDialog2 -fm 3  -ff "None" -okc "select path" -dialogStyle 2`;
+    string $oldPath = `textFieldButtonGrp -q -tx targentDir`;
+    string $convertWinDir=`toNativePath $newPath[0]`;
+    if(size($newPath) == 0)
+    {
+        textFieldButtonGrp -e -tx $oldPath targentDir;
+    }
+    else
+    {
+        textFieldButtonGrp -e -tx $convertWinDir targentDir;
+    }
+}
+//copy ass to targen path
+global proc AAM_CopyAss()
+{
+    waitCursor -state on;
+    
+    string $selectAssList[] = `ls -sl -type "aiStandIn"`;
+    if(size($selectAssList)==0)
+    {
+        waitCursor -state off;
+        warning "请重新勾选需要的选项后重试！！！";
+    }
+    else
+    {
+        string $targentDir = `textFieldButtonGrp -q -text targentDir`;
+        string $targentWinDir=`toNativePath $targentDir`;
+        int $index = 1;
+        for( $selectAss in $selectAssList)
+        {
+            string $assFileFullPath = `getAttr ($selectAss+".dso")`;
+            string $assFileWinDir=`toNativePath $assFileFullPath`;
+            system("copy "+ $assFileWinDir + " " + $targentWinDir);
+            print ("进度：" + $index + " / " + size($selectAssList) + "\n");
+            $index+=1;
+        }
+	    waitCursor -state off;
+	    	
+        confirmDialog -title "提示" -m ("复制完成！！复制数量：" + ($index - 1)) -icn "information" -b "关闭";        
+    }
+}
+//update scene ass filePath
+global proc AAM_ReplaceDir()
+{
+    waitCursor -state on;
+    
+    string $selectAssList[] = `ls -sl -type "aiStandIn"`;
+    if(size($selectAssList) == 0)
+    {
+        waitCursor -state off;
+        warning "请重新勾选需要的选项后重试！！！";
+    }
+    else
+    {
+        string $targentDir = `textFieldButtonGrp -q -text targentDir`;
+        string $convertDir = `fromNativePath $targentDir`;
+        for( $selectAss in $selectAssList)
+        {
+            string $assFileFullPath = `getAttr ($selectAss + ".dso")`;
+            string $buffer[];
+            int $toKenizeNum = `tokenize $assFileFullPath "/" $buffer`;
+            string $assFileNewPath = $convertDir + "/" + $buffer[$toKenizeNum-1];
+            setAttr ($selectAss + ".dso") -type "string" $assFileNewPath;
+        }
+        waitCursor -state off;
+    
+        confirmDialog -title "提示" -m "执行完成，请渲染检查一下" -icn "information" -b "关闭";
+    }
+    
+}
+//open targent path
+global proc AAM_OpenPath()
+{
+        string $targentDir = `textFieldButtonGrp -q -text targentDir`;
+        string $convertDir = `toNativePath $targentDir`;
+        system ("start explorer \""+$convertDir+"\"");
+}
+
+//rebuild ui
+global proc AAM_RebuildUI()
+{
+    string $targentDir = `textFieldButtonGrp -q -text targentDir`;
+    AAM_MainWindow($targentDir);
+}
+global proc AAM_Help()
+{
+    string $message = "1.点击分析场景Ass，获得分析结果后进行操作\n";
+           $message += "2.勾选需要操作的选项，点击下面的按钮\n";
+           $message += "3.按钮的操作，是根据目标路径执行，确保路径的正确性\n";
+           $message += "4.执行脚本前，请确保场景中没有选中的物体\n\n";
+           $message += "没有选中的物体！ 没有选中的物体！没有选中的物体！\n";
+           $message += "重要的事情要说三遍\n\n\n";
+           $message += "Script Name: Arnold Ass Manager\n";
+           $message += "Author:         luo jun\n";
+           $message += "Email:            junvfx@foxmail.com\n";
+           $message += "QQ:              345106983\n";
+           $message += "Update:        2016-6\n";
+    confirmDialog -title "About" -m $message -icn "information" -b "关闭";
+}
+string $currentSceneFullPath = `file -q -loc`;
+string $currentScenePath = `dirname $currentSceneFullPath`;
+string $convertToWinDir = `toNativePath $currentScenePath`;
+AAM_MainWindow($convertToWinDir);
