@@ -1,0 +1,73 @@
+[
+  {
+    "renderSetupLayer": {
+      "notes": "This is an Render Setup Layer example.  \n  \nCreate your own templates by exporting Render Setup nodes to desired location. \nCheck Preferences-Rendering", 
+      "collections": [
+        {
+          "collection": {
+            "selector": {
+              "simpleSelector": {
+                "pattern": "", 
+                "customFilterValue": "", 
+                "typeFilter": 1, 
+                "staticSelection": ""
+              }
+            }, 
+            "children": [], 
+            "name": "AddGeoForRendering", 
+            "selfEnabled": true, 
+            "isolateSelected": false
+          }
+        }, 
+        {
+          "collection": {
+            "selector": {
+              "simpleSelector": {
+                "pattern": "", 
+                "customFilterValue": "", 
+                "typeFilter": 1, 
+                "staticSelection": ""
+              }
+            }, 
+            "children": [
+              {
+                "collection": {
+                  "selector": {
+                    "simpleSelector": {
+                      "pattern": "*", 
+                      "customFilterValue": "", 
+                      "typeFilter": 3, 
+                      "staticSelection": ""
+                    }
+                  }, 
+                  "children": [
+                    {
+                      "absOverride": {
+                        "attribute": "aiEnableMatte", 
+                        "name": "aiEnableMatte", 
+                        "selfEnabled": true, 
+                        "attrValue": {
+                          "type": "Bool", 
+                          "connectable": true, 
+                          "value": true
+                        }
+                      }
+                    }
+                  ], 
+                  "name": "MatteOverride", 
+                  "selfEnabled": true, 
+                  "isolateSelected": false
+                }
+              }
+            ], 
+            "name": "AddHoldoutGeo", 
+            "selfEnabled": true, 
+            "isolateSelected": false
+          }
+        }
+      ], 
+      "name": "MyRenderLayerExample", 
+      "isVisible": true
+    }
+  }
+]

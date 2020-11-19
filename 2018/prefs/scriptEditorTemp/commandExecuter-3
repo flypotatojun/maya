@@ -1,0 +1,7 @@
+import sys
+import maya.cmds as jun
+initialPath= "E:\CK_Dev\Maya_Dev\Tool_Collections\Document\maya\2018\scripts\ABCMaterialsTool"
+if initialPath not in sys.path:
+    sys.path.append(initialPath)
+import ABCMaterialsTool
+ABCMaterialsTool.windowsShow()

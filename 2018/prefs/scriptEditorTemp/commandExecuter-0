@@ -1,0 +1,2 @@
+import maya.cmds as cmds
+cmds.file( 'E:/LocalProjects/LGT.ma', reference=True )

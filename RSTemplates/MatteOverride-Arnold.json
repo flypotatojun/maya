@@ -1,0 +1,32 @@
+[
+  {
+    "collection": {
+      "name": "MatteOverride", 
+      "selfEnabled": true, 
+      "notes": "Holdout/Cutout Arnold Example \nSelect Collection with Geometry that need to be Cutout from Render  \n  \nCreate your own templates by exporting Render Setup nodes to desired location. \nCheck Preferences-Rendering ", 
+      "selector": {
+        "simpleSelector": {
+          "pattern": "*", 
+          "customFilterValue": "", 
+          "typeFilter": 3, 
+          "staticSelection": ""
+        }
+      }, 
+      "children": [
+        {
+          "absOverride": {
+            "attribute": "aiEnableMatte", 
+            "name": "aiEnableMatte", 
+            "selfEnabled": true, 
+            "attrValue": {
+              "type": "Bool", 
+              "connectable": true, 
+              "value": true
+            }
+          }
+        }
+      ], 
+      "isolateSelected": false
+    }
+  }
+]
