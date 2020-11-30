@@ -297,6 +297,60 @@
     ],
     "closedControls": [
         {
+            "objectName": "unifiedRenderGlobalsWindow",
+            "posX": 1009,
+            "posY": 213,
+            "controlHeight": 670,
+            "controlWidth": 456,
+            "widthProperty": "free",
+            "heightProperty": "free"
+        },
+        {
+            "objectName": "polyTexturePlacementPanel1Window",
+            "posX": 1973,
+            "posY": 244,
+            "controlHeight": 783,
+            "controlWidth": 1118,
+            "widthProperty": "free",
+            "heightProperty": "free"
+        },
+        {
+            "objectName": "UVToolkitDockControl",
+            "posX": 1265,
+            "posY": 688,
+            "controlHeight": 783,
+            "controlWidth": 285,
+            "widthProperty": "preferred",
+            "heightProperty": "free"
+        },
+        {
+            "objectName": "AovControl_4fcfada2-27ea-4baf-978b-876be8c2e0e1WorkspaceControl",
+            "posX": 250,
+            "posY": 200,
+            "controlHeight": 800,
+            "controlWidth": 550,
+            "widthProperty": "free",
+            "heightProperty": "free"
+        },
+        {
+            "objectName": "MayaRenderSetupWindowWorkspaceControl",
+            "posX": 188,
+            "posY": 399,
+            "controlHeight": 600,
+            "controlWidth": 408,
+            "widthProperty": "preferred",
+            "heightProperty": "free"
+        },
+        {
+            "objectName": "referenceEditorPanel1Window",
+            "posX": 506,
+            "posY": 569,
+            "controlHeight": 442,
+            "controlWidth": 821,
+            "widthProperty": "free",
+            "heightProperty": "free"
+        },
+        {
             "objectName": "scriptEditorPanel1Window",
             "posX": 619,
             "posY": 472,
@@ -306,11 +360,20 @@
             "heightProperty": "free"
         },
         {
-            "objectName": "hyperShadePanel1Window",
-            "posX": 2503,
-            "posY": 270,
-            "controlHeight": 632,
-            "controlWidth": 997,
+            "objectName": "AttributeControl_489afad3-c964-4024-a614-a597ff40afdcWorkspaceControl",
+            "posX": 250,
+            "posY": 200,
+            "controlHeight": 800,
+            "controlWidth": 550,
+            "widthProperty": "free",
+            "heightProperty": "free"
+        },
+        {
+            "objectName": "ArnoldRenderView",
+            "posX": 2301,
+            "posY": 134,
+            "controlHeight": 767,
+            "controlWidth": 1036,
             "widthProperty": "free",
             "heightProperty": "free"
         },
@@ -333,74 +396,11 @@
             "heightProperty": "free"
         },
         {
-            "objectName": "referenceEditorPanel1Window",
-            "posX": 506,
-            "posY": 569,
-            "controlHeight": 442,
-            "controlWidth": 821,
-            "widthProperty": "free",
-            "heightProperty": "free"
-        },
-        {
-            "objectName": "unifiedRenderGlobalsWindow",
-            "posX": 1009,
-            "posY": 213,
-            "controlHeight": 670,
-            "controlWidth": 456,
-            "widthProperty": "free",
-            "heightProperty": "free"
-        },
-        {
-            "objectName": "ArnoldRenderView",
-            "posX": 2301,
-            "posY": 134,
-            "controlHeight": 767,
-            "controlWidth": 1036,
-            "widthProperty": "free",
-            "heightProperty": "free"
-        },
-        {
-            "objectName": "UVToolkitDockControl",
-            "posX": 1265,
-            "posY": 688,
-            "controlHeight": 783,
-            "controlWidth": 285,
-            "widthProperty": "preferred",
-            "heightProperty": "free"
-        },
-        {
-            "objectName": "MayaRenderSetupWindowWorkspaceControl",
-            "posX": 188,
-            "posY": 399,
-            "controlHeight": 600,
-            "controlWidth": 408,
-            "widthProperty": "preferred",
-            "heightProperty": "free"
-        },
-        {
-            "objectName": "polyTexturePlacementPanel1Window",
-            "posX": 1973,
-            "posY": 244,
-            "controlHeight": 783,
-            "controlWidth": 1118,
-            "widthProperty": "free",
-            "heightProperty": "free"
-        },
-        {
-            "objectName": "AttributeControl_489afad3-c964-4024-a614-a597ff40afdcWorkspaceControl",
-            "posX": 250,
-            "posY": 200,
-            "controlHeight": 800,
-            "controlWidth": 550,
-            "widthProperty": "free",
-            "heightProperty": "free"
-        },
-        {
-            "objectName": "AovControl_4fcfada2-27ea-4baf-978b-876be8c2e0e1WorkspaceControl",
-            "posX": 250,
-            "posY": 200,
-            "controlHeight": 800,
-            "controlWidth": 550,
+            "objectName": "hyperShadePanel1Window",
+            "posX": 2503,
+            "posY": 270,
+            "controlHeight": 632,
+            "controlWidth": 997,
             "widthProperty": "free",
             "heightProperty": "free"
         }

@@ -19,7 +19,8 @@ import glob
 import webbrowser
 import dk_shd
 
-LOOKDEV_KIT_FOLDER = os.path.dirname(os.path.abspath(__file__))
+# LOOKDEV_KIT_FOLDER = os.path.dirname(os.path.abspath(__file__))
+LOOKDEV_KIT_FOLDER = 'W:\\Bob_IP\\00_Pipeline\\CustomModules\\Maya\\scripts\\lookdev_kit'
 MINI_HDR_FOLDER = os.path.join(LOOKDEV_KIT_FOLDER, "sourceimages", "mini").replace("\\", "/")
 TEX_FOLDER = os.path.join(LOOKDEV_KIT_FOLDER, "sourceimages").replace("\\", "/")
 HDR_FOLDER = os.path.join(TEX_FOLDER, "hdr").replace("\\", "/")

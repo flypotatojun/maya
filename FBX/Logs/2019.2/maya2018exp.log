@@ -1,0 +1,3 @@
+2020-11-27 17:00:07: LOG: Export: E:/LocalProjects/TikTok/BG1/export/geogeo.fbx
+2020-11-27 17:00:15: LOG: [WARNING] Unable to export some material(s) - The plug-in does not support the following material types:
+ Material aiUtility1 will be exported as a grey Lambert material.

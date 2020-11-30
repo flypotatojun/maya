@@ -26,11 +26,10 @@ global proc shelf_dk_mtoa_lookdev () {
         -flipY 0
         -useAlpha 1
         -font "plainLabelFont" 
-        -imageOverlayLabel "LDV" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.5 
-        -image "commandButton.png" 
-        -image1 "commandButton.png" 
+        -image "W:/Bob_IP/00_Pipeline/CustomModules/Maya/icons/Lodv.bmp" 
+        -image1 "W:/Bob_IP/00_Pipeline/CustomModules/Maya/icons/Lodv.bmp" 
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
