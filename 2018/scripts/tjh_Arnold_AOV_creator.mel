@@ -1,0 +1,2694 @@
+//tjh_Arnold_AOV_creator v 1.0.7
+//coded by tiancg on 2017/03/17 for arnold 3.1.2 Arnold Core 5.2.1.0
+//====================================================================================================
+//<built in> shader AOVs list.
+
+//updata 2020/05/23 : v 1.0.7 
+//update the arnold nuke object_ID pickup code .
+
+//updata 2019/10/16 :  v 1.0.6
+//fix the cryptomatte pass error .
+
+
+//updata 2019/05/06 :  v 1.0.5
+//1.add AOVs enable toggle buttons .
+//2.add new built-in AOVs type "diffuse_albedo" for arnold 1.4.1.2 .
+
+
+
+
+
+//=====================  initial  default arnold AOVs list. green color. =========================
+global proc tjh_Arnold_AOV_creator___initial_all_datas()
+{
+	//import arnold python module
+	python("from mtoa import *");
+
+	global string $tjh_Arnold_AOV_NAMES[];$tjh_Arnold_AOV_NAMES={"beauty","AA_inv_density","ID","N","P","Pref","RGBA","Z","albedo","background","coat","coat_albedo","coat_direct","coat_indirect","cputime","diffuse","diffuse_albedo","diffuse_direct","diffuse_indirect","direct","direct_diffuse","direct_specular","direct_sss","direct_transmission","emission","highlight","indirect_diffuse","indirect_specular","indirect_sss","mesh_light_beauty","indirect","motionvector","opacity","raycount","rim_light","reflection","refraction","refraction_opacity","shadow","shadow_diff","shadow_mask","shadow_matte","sheen","specular","specular_albedo","specular_direct","specular_indirect","sss","sss_albedo","sss_direct","sss_indirect","transmission","transmission_albedo","transmission_direct","transmission_indirect","volume","volume_Z","volume_albedo","volume_direct","volume_indirect","volume_opacity"};
+
+	//My extending aiUtility shader AOVs list.the layers that the name is include this list will be colored by blue.
+	global string $tjh_arnold__aiUtilityAOVs[];$tjh_arnold__aiUtilityAOVs = {"crypto_asset","crypto_material","crypto_object","UV_Coords","Triangle_Wireframe","Polygon_Wireframe","object_id","TriFace_Id","face_id","AO_OCC","Rim","Mat_id_01","Mat_id_02","Mat_id_03","Mat_id_04","Mat_id_05","Mat_id_06","Mat_id_07","Mat_id_08"};
+
+	//global string $tjh_arnold_cryptoAOVs[];$tjh_arnold_cryptoAOVs = {"crypto_asset","crypto_material","crypto_object"};
+
+
+	//unite $tjh_Arnold_AOV_NAMES and $tjh_arnold__aiUtilityAOVs AOVs's names list.
+	string $all_aovs_lists[];
+	int $id= 0;
+
+	for($i = 0;$i<size($tjh_Arnold_AOV_NAMES);$i++)
+	{
+		$all_aovs_lists[$id]= $tjh_Arnold_AOV_NAMES[$i];
+		$id++;
+	}	
+	for($i = 0;$i<size($tjh_arnold__aiUtilityAOVs);$i++)
+	{
+		$all_aovs_lists[$id]= $tjh_arnold__aiUtilityAOVs[$i];
+		$id++;
+	}
+	clear $tjh_Arnold_AOV_NAMES;
+	$tjh_Arnold_AOV_NAMES = $all_aovs_lists;
+
+
+
+	//get custom AOVs and unite names list
+	global string $tjh_all_custom_Aovs_NAMES[];
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;	
+	int $custom_id = 0;
+
+	string $default_aov_name;
+	string $aov;
+
+	
+	for($aov in $all_aiAovs)
+	{	
+		
+		int $result = 0;//1 not custom ,0 true custom	
+		string $nameString;
+		for($default_aov_name in $tjh_Arnold_AOV_NAMES)
+		{		
+			$nameString = ` getAttr ($aov+".name") `;			
+			
+			if($nameString == $default_aov_name )
+			{
+				$result += 1;					
+			}
+			
+		}
+
+		if($result==0)
+		{
+			$tjh_all_custom_Aovs_NAMES[$custom_id]=$nameString;
+			$custom_id++;
+		
+		}
+	}
+	//print "$tjh_all_custom_Aovs_NAMES = \n";
+	//print $tjh_all_custom_Aovs_NAMES ; 
+
+	//unite the custom and default AOVs NAMES	
+	string $all_aovs_lists[];
+	int $id= 0;
+
+	for($i = 0;$i<size($tjh_Arnold_AOV_NAMES);$i++)
+	{
+		$all_aovs_lists[$id]= $tjh_Arnold_AOV_NAMES[$i];
+		$id++;
+	}	
+	for($i = 0;$i<size($tjh_all_custom_Aovs_NAMES);$i++)
+	{
+		$all_aovs_lists[$id]= $tjh_all_custom_Aovs_NAMES[$i];
+		$id++;
+	}
+	clear $tjh_Arnold_AOV_NAMES;
+	$tjh_Arnold_AOV_NAMES = $all_aovs_lists;
+
+	//print "$tjh_Arnold_AOV_NAMES = \n";
+	//print  $tjh_Arnold_AOV_NAMES;
+
+
+
+
+	global string $tjh_Arnold_AOV_Preset_datas[];
+	global int $tjh_Arnold_AOV_Global_current_checkBox_selectionList[];
+
+
+}
+
+//==============================================================================
+//======================= main UI.===============================================
+//=================================================================================
+
+global proc tjh_Arnold_AOV_creator()
+{
+	global string $tjh_Arnold_AOV_NAMES[];
+	global string $tjh_arnold__aiUtilityAOVs[];
+
+	tjh_Arnold_AOV_creator___initial_all_datas;
+	tjh_Arnold_AOV_read_preset_initial_readDataFromPresetFile;
+	
+	if (`windowPref -exists tjh_Arnold_AOV_creator_window`)
+		    windowPref -remove  tjh_Arnold_AOV_creator_window;     
+
+			  
+			  if (`window -exists tjh_Arnold_AOV_creator_window`)
+			  deleteUI tjh_Arnold_AOV_creator_window;
+
+
+	window  -menuBar true -rtf 1  -w 330 -h 140 tjh_Arnold_AOV_creator_window;
+	columnLayout -adj 1;	
+	
+		//menu -label "Help" ;
+		//	menuItem -label "Help..." -c "tjh_Arnold_AOV_creator_help";
+
+		
+		menu -tearOff on  -label "Preset" tjh_Arnold_AOV_creator__menu_Preset;
+			menuItem  -label "Save Preset..." -c "tjh_Arnold_AOV_preset" tjh_Arnold_AOV_creator__menuItem_SavePreset;
+			menuItem  -label "Delete Preset..." -c "tjh_Arnold_AOV_preset" tjh_Arnold_AOV_creator__menuItem_DeletePreset;
+			menuItem  -label "Reset Presets" -c "tjh_Arnold_AOV_creator__reset_presets" ;
+			//test maya version
+			string $mayaVer=` about -v `;
+			string $testVersion = "";
+			if($testVersion == "") $testVersion = ` match "[0-9][0-9][0-9][0-9]" $mayaVer`;
+			
+
+			//add ptex4Mr mentalray mi shader path
+			if($testVersion == "2014" || $testVersion == "2013" || $testVersion == "2012" || $testVersion == "2011" )
+			{	
+			
+			menuItem  -divider 1 
+			//-dividerLabel "preset" 
+			//-longDivider 1
+			;
+
+			}else{
+			//if maya version > 2014
+			menuItem  -divider 1 
+			-dividerLabel "preset" 
+			//-longDivider 1
+			;
+
+			}
+
+			tjh_Arnold_AOV_Preset__menuItems();
+
+		menu -tearOff on -label "Help" tjh_Arnold_AOV_creator__menu_Blog;
+			menuItem  -label "Updata Newest Version..." -c "showHelp -absolute \"http://blog.csdn.net/tian0000hai\"" ;
+			menuItem  -label "Blog..." -c "showHelp -absolute \"http://blog.csdn.net/tian0000hai\"" ;
+
+
+
+			 
+
+
+	scrollLayout -childResizable 1 
+			     -minChildWidth 300
+			     //-backgroundColor 0.1 0.1 0.1 
+			     -w 300 
+			     -h 600;
+
+
+		frameLayout -label " ---------- tjh_Arnold_AOV_creator V1.0.7  ----------------------" -labelAlign "top"  
+		-collapsable 1 
+		-collapse 0
+		//-borderStyle "etchedOut"
+		;
+			columnLayout;
+			
+
+			//text   -fn boldLabelFont  -al "left" -l "         tjh_Arnold_AOV_creator V1.0.7   ";
+			text     -al "left" -l "         For  MTOA 3.1.2  Arnold Core 5.2.1.0 ";
+			text     -al "left" -l "         Tiancg in 2017-03-17 ~ 2019-10-16 ";
+			
+			separator -h 20 -w 300;
+			
+
+			text -w 300 -wordWrap on  -al "left" -l "  This procedure can quick create renderPass for arnold. 此插件用于快速创建 管理 保存 Arnold AOVs的各类渲染通道层，南无阿弥陀佛.     ";
+			button  -w 300  -backgroundColor 0.0 0.0 0.4  -label "访问  tiancg  博客，获取更多原创插件最新版！... "  -command  "showHelp -absolute \"http://blog.csdn.net/tian0000hai\"";
+			separator -h 20 -w 300;
+
+			setParent ..;
+		setParent ..;
+
+		///////////////////////////////////////////////////////////////////////////////
+		/*
+		frameLayout -label "AOVs Pass Toggle Edit" -labelAlign "top"  -collapsable 1 -collapse 1
+					;
+			columnLayout;
+		
+			text -w 300 -wordWrap on  -al "left" -l "  此工具用于管理现有已经创建的AOVs渲染分层，勾选开关可以快速全选、反选将要创建的渲染层，也可以快速获取已创建的渲染层，作为后期保存为preset用做后期快速使用。Get Current Pass:得到当前创建层，Reverse Pass Enable：反转层开关，Enable All Pass：开启所有层开关，Disable All Pass：关闭所有层开关。Delete All Pass：删除所有层，Remove All Pass Overrides：删除所有层开关渲染层描述信息。";
+
+			
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+
+				button  -w 150 -backgroundColor 0.0 0.0 0.4  -label "Get Current Pass"  -command  "evalDeferred \"tjh_Arnold_AOV_creator;tjh_Arnold_AOV_creator__GetCurrentPass;\"";
+				
+				button  -w 150 -backgroundColor 0.3 0.0 0.0  -label "Reverse Pass Enable"  -command  "tjh_Arnold_AOV_creator__reverseEnablePass";
+
+				setParent ..;
+
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+
+				button  -w 150 -backgroundColor 0.0 0.0 0.4  -label "Enable All Pass"  -command  "tjh_Arnold_AOV_creator__EnableAllPass";
+				button  -w 150 -backgroundColor 0.3 0.0 0.0 -label "Disable All Pass"  -command  "tjh_Arnold_AOV_creator__DisableAllPass";
+			
+				setParent ..;
+
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+
+				//text -w 150 -wordWrap on  -al "left" -l " ";
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.0  -label "Delete All Pass"  -command  "delete ` ls -type \"aiAOV\" `;tjh_Arnold_AOV_creator__GetCurrentPass;";
+				
+				button  -w 150 -backgroundColor 0.3 0.0 0.0 -label "Remove All Pass Overrides"  -command  "tjh_Arnold_AOV_creator__DisableAllPassOverrides";
+			
+				setParent ..;
+
+			separator -h 10 -w 300;
+
+			setParent ..;
+		setParent ..;
+		*/
+		
+		/////////////////////////////////////////////////////////////////////////////
+		frameLayout -label "AOVs Creator" -labelAlign "top"  -collapsable 1 -collapse 1
+					  tjh_Arnold_AOV_creator_____AOVs_Creator_frameLayout;
+			columnLayout;
+			text -w 300 -wordWrap on  -al "left" -l "  此工具用于创建的渲染分层通道，其中包含:系统默认层(绿色),aiUtilly自定义层(蓝色),用户自添加层(红色),多种通道，(黄色)为已经创建的通道层，通过Get Current Pass按钮，可刷新UI，获得已创建层信息，已创建层会黄色显示，并伴有右键菜单，可通过右键菜单执行快捷命令，例如，选择AOV、filter、driver相关节点等功能。可以通过主菜单preset保存管理调用自己创建的层。\n<使用方法>：勾选选项，点击底栏Create Selected Pass按钮即可创建渲染通道，删除同理。Get Current Pass:得到当前创建层。";
+
+			
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 300
+				-columnWidth 2 1;
+
+				button  -w 150 -backgroundColor 0.0 0.0 0.4  -label "Get Current AOV Pass ( Updata UI )"  -command  "evalDeferred \"tjh_Arnold_AOV_creator;tjh_Arnold_AOV_creator__GetCurrentPass;\"";
+				text -w 150 -wordWrap on  -al "left" -l " ";
+				//button  -w 150 -backgroundColor 0.3 0.0 0.0  -label "reverse Enable Pass"  -command  "tjh_Arnold_AOV_creator__reverseEnablePass";
+
+				setParent ..;
+			
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+
+				checkBox -bgc 0.0 0.2 0.0 -v 0 -label "Open/Close All AOVs" 
+				    -changeCommand "tjh_Arnold_AOV_creator__create_checkBox_changeCommand"
+				    -onCommand "tjh_Arnold_AOV_creator__setAllOn_checkBox 1"
+				    -offCommand "tjh_Arnold_AOV_creator__setAllOn_checkBox 0"
+				    tjh_Arnold_AOV_creator_checkBox_selectAllCheckBox;
+
+				checkBox -bgc 0.2 0.1 0.1 -v 1 -label "Merge AOVs Pass For EXR  " 
+				    -changeCommand "tjh_Arnold_AOV_creator__create_checkBox_changeCommand"
+				    -onCommand ""
+				    -offCommand ""
+				    tjh_Arnold_AOV_creator_checkBox_ExrPassMergeAOVsCheckBox;
+
+				    setParent ..;			
+			
+			separator -h 10 -w 300;
+
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;		
+
+				//-----------  AOVs all checkBox builting -----------------
+				tjh_Arnold_AOV_creator__create_checkBox();
+				//----------------------------------------
+
+
+				setParent ..; 			
+				
+			
+
+			//separator -h 10 -w 300;
+						
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;			
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.4 -label "Add Selected AOV Pass"  -command  "tjh_Arnold_AOV_creator__create_RenderLayers \"createSelected\"";
+				button  -w 150 -backgroundColor 0.3 0.0 0.0 -label "Remove Selected AOV Pass"  -command  "tjh_Arnold_AOV_creator__create_RenderLayers \"deleteSelected\"";
+				setParent ..; 
+			
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;			
+				
+				textField -w 150 -text "Custom_01" tjh_Arnold_AOV_creator__customAov_textField;
+				//button  -w 150 -backgroundColor 0.0 0.0 0.4 -label "Create Selected Pass"  -command  "tjh_Arnold_AOV_creator__create_RenderLayers \"createSelected\"";
+				button  -w 150 -backgroundColor 0.0 0.0 0.4 -label "Add Custom AOV Pass"  -command  "tjh_Arnold_AOV_creator__add_customAov";
+				setParent ..; 
+
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;			
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.0  -label "Remove All AOV Pass Exist "  -command  "delete ` ls -type \"aiAOV\" `;tjh_Arnold_AOV_creator__GetCurrentPass;";
+
+				button  -w 150 -backgroundColor 0.0 0.0 0.1 -label "Remove Custom AOV Pass"  -command  "tjh_Arnold_AOV_creator__delete_customAov";
+				setParent ..; 
+
+
+			setParent ..;
+		setParent ..;
+			
+		////////////////////////////////////////////////////////////////////
+		frameLayout -label "Motion blur vector pass Creator" -labelAlign "top"  -collapsable 1 -collapse 1
+					;
+			columnLayout;
+		
+
+			text  -w 300 -al "left" -wordWrap on -l "    Must create a motionvector pass first !!! and then set the button 使用方法:\n首先创建一个 motionvector pass层，之后点击Create motionvector Setting按钮即可。最后要记得reset还原设置。此快速工具会开启全局动感模糊，并根据全局参数，设置摄像机的arnold参数shutter start、shutter end。";
+
+			text  -w 300 -al "left" -wordWrap on -l "   ";
+			//separator -h 10 -w 300;
+
+			
+			
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+				
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.4  -label "Create motionvector Setting"  -command  "tjh_Arnold_AOV_creator__Create_motionvector_Setting ;tjh_Arnold_AOV_creator__GetCurrentPass;";
+
+				button  -w 150 -backgroundColor 0.3 0.0 0.0  -label "Reset motionvector Setting"  -command  "tjh_Arnold_AOV_creator__Reset_motionvector_Setting;tjh_Arnold_AOV_creator__GetCurrentPass;";
+
+				setParent ..;		
+			setParent ..;
+		setParent ..;
+
+		//////////////////////////////////////////////////////////////////
+		frameLayout -label "Object IDs  Creator I   ( Recommand!推荐 )" -labelAlign "top"  -collapsable 1 -collapse 1
+					;
+			columnLayout;		
+
+			text  -w 300 -al "left" -wordWrap on -l "   Object ID pass:    Must create a default ID AOV pass first ! and then select the objects and  create the sets 使用方法:\n首先在渲染全局AOVs创建一个 ID pass层，之后选择多个物体，点击Object ID按钮为选择多物体创建相同id,点击Auto ID Seperately按钮即可在每个选择物体创建不同的id 值，保证id的唯一性。\n<<<原理说明>>>：\n此方法在mesh节点User Options添加自定义变量id.从而利用系统ID通道渲染此值。\n在nuke中可以导入ID层，选择图片节点，从maya本插件提供nuke代码拖动到nuke中即可创建id提取节点，在节点的pickcolor色彩属性中，按ctrl+左键拾取色彩创建提取节点id。复制此节点可以提取更多的id色彩，并通过merge节点合并即可同时编辑使用多个id层。";
+
+			string $nukeScript = "#maya渲染arnold分层渲染ID通道图片，导入nuke后，选择图片节点，拷贝粘贴如下脚本即可生成表达式提取节点\n#在表达式节点 nuke_ID_pass_take1属性面板中，在User_pickColor下的pickcolor色彩拾取属性中，点击右侧色彩方块，\n#按住ctrl键+图片上点击，拾取物体ID色彩即可。\n\nset cut_paste_input [stack 0]\nversion 12.1 v1\npush $cut_paste_input\nExpression {\n expr0 \" (g>pickcolor.g-colorThreshold?1:0 )-(g>pickcolor.g+colorThreshold ?1:0 )\"\n expr2 \" (g>pickcolor.g-colorThreshold?1:0 )-(g>pickcolor.g+colorThreshold ?1:0 )\"\n channel3 alpha\n expr3 \" (g>pickcolor.g-colorThreshold?1:0 )-(g>pickcolor.g+colorThreshold ?1:0 )\"\n name Nuke_ID_pass_taker1\n selected true\n xpos -276\n ypos -13\n addUserKnob {20 User_pickColor}\n addUserKnob {7 colorThreshold l \"Color Threshold\" t 控制色彩容差范围 R 0.01 1}\n colorThreshold 0.045\n addUserKnob {18 pickcolor t \"在Arnold object ID 图片中，失去物体id 色彩\"}\n pickcolor {0 0 0}\n addUserKnob {6 pickcolor_panelDropped l \"panel dropped state\" -STARTLINE +HIDDEN}\n}\nPremult {\n name Premult2\n selected true\n xpos -108\n ypos -13\n}\n";
+
+			
+
+
+
+			text  -w 300 -al "left" -wordWrap 0 -l "Nuke Script Codes: select and drag the codes to Nuke ." ;
+
+			scrollField -ed 1 -w 280 -h 100 -bgc 0.2 0.2 0.2 -wordWrap 1 -text $nukeScript  nukeScript_scrollField_I;
+
+			text  -w 300 -al "left" -wordWrap 0 -l "::::::::::::::::::::::::::::: AOV Creator :::::::::::::::::::::::::::::" ;
+
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+				
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.3  -label "Create AOV ID Pass "  -command  "tjh_Arnold_AOV_creator__add__customAov ID;";
+
+				button  -w 150 -backgroundColor 0.3 0.0 0.0 -label "Remove AOV ID Pass "  -command  "tjh_Arnold_AOV_creator__remove__customAov ID;";
+
+				setParent ..;
+
+
+			text  -w 300 -al "left" -wordWrap on -l "::::::::::::::::::::::::::::: Set Object id  ::::::::::::::::::::::::::";
+			//separator -h 10 -w 300;
+			rowLayout -numberOfColumns 16 
+				-columnWidth6  18 18 18 18 18 18 
+				-columnWidth 7 18
+				-columnWidth 8 18
+				-columnWidth 9 18
+				-columnWidth 10 18
+				-columnWidth 11 18
+				-columnWidth 12 18
+				-columnWidth 13 18
+				-columnWidth 14 18
+				-columnWidth 15 18
+				-columnWidth 16 18
+				//-adjustableColumn 16
+				;
+				
+				button  -w 18  -label "1"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  1 " );
+				button  -w 18  -label "2"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  2 " );
+				button  -w 18  -label "3"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  3 " );
+				button  -w 18  -label "4"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  4 " );
+				button  -w 18  -label "5"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  5 " );
+				button  -w 18  -label "6"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  6 " );
+				button  -w 18  -label "7"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  7 " );
+				button  -w 18  -label "8"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  8 " );
+				button  -w 18  -label "9"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  9 " );
+				button  -w 18  -label "10"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  10 " );
+				button  -w 18  -label "11"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  11 " );
+				button  -w 18  -label "12"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  12 " );
+				button  -w 18  -label "13"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  13 " );
+				button  -w 18  -label "14"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  14 " );
+				button  -w 18  -label "15"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  15 " );
+				button  -w 18  -label "16"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I  16 " );
+				setParent ..;
+
+			intSliderGrp  -w 300   -fieldMaxValue 10000 -fieldMinValue 1 -v 1 -minValue 1 -label "Set Object id ( Method I )" -field true tjh_Arnold_AOV_creator__intSliderGrp__objectIdSets_I;
+
+			//separator -h 10 -w 300;
+			
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+				
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.5  -label "Set id"  -command  "tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I   all_Same_for_selected ;tjh_Arnold_AOV_creator__GetCurrentPass;";
+
+				button  -w 150 -backgroundColor 0.3 0.0 0.0 -label "Delete AOV All Object Id"  -command  "tjh_Arnold_AOV_creator__Delete_All_ObjectId_Sets I";
+
+				setParent ..;
+
+
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+				
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.4 -label "Auto id Seperately "  -command  "tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  I seperate_for_selected ;tjh_Arnold_AOV_creator__GetCurrentPass;";
+
+				text  -w 150 -al "left" -wordWrap on -l "   ";
+				//button  -w 150 -backgroundColor 1.0 0.7 1.0 -label "Delete AOV All Object Id Sets"  -command  "tjh_Arnold_AOV_creator__Delete_All_ObjectId_Sets I";
+
+				setParent ..;
+			setParent ..;
+		setParent ..;
+
+
+		////////////////////////////////////////////////////////////////////////
+		frameLayout -label "Object IDs  Creator I I" -labelAlign "top"  -collapsable 1 -collapse 1
+					;
+			columnLayout;		
+
+			text  -w 300 -al "left" -wordWrap on -l "  AOV Object Id pass:    Must create a AOV object_id pass first !!! and then select the objects and  create the sets 使用方法:\n首先使用本插件创建一个AOVs object_id pass层，之后选择多个物体，点击Set Object Id按钮即可( 增量单位为 0.01 )。为多个物体创建相同id，可以点击Auto Object_Id Seperately按钮，自动为每个物体创建独立id。在nuke中可以导入ID层，选择图片节点，从maya选择并拖动代码到nuke中即可运行脚本，在pickcolor中ctrl+左键拾取色彩创建提取节点id。\n原理说明：\n<<<原理说明>>>：\n 这里使用的是aiUserDataFloat节点，自定义一个float浮点变量arnold专有变量objectID（此名为随意自定义的），将此节点练到aiUtility的flat类色彩上用作物体的id通道色彩类型，并在每个选择物体的shape节点添加自定义变量不同的值，从而区分不同物体的id，保证id的唯一性。此方式的优点是通过类似景深通道的方式，读取每个物体的id，效率很快，在nuke中可以通过grade节点来获取每个物体的id rgb信息，并用nuke primatte插件进行alpha快速提取即可。此方式的优点是可以避免多色彩混合方式色值接近，不好区分的麻烦，保证每个物体只有一个深度色彩。";
+
+			//text  -w 300 -al "left" -wordWrap on -l "   ";
+			//separator -h 10 -w 300;
+
+			$nukeScript = "";
+
+			$nukeScript += "set cut_paste_input [stack 0]"+"\n";
+			$nukeScript += "version 10.5 v5"+"\n";
+			$nukeScript += "push $cut_paste_input"+"\n";
+			$nukeScript += "Expression {"+"\n";
+			// id unit = 1  ,判断id增量系数为 +- 0.01*0.1=0.001
+			$nukeScript += " expr0 \" (g>pickcolor.g-0.001?1:0 )-(g>pickcolor.g+0.001 ?1:0 )\""+"\n";
+			$nukeScript += " expr2 \" (g>pickcolor.g-0.001?1:0 )-(g>pickcolor.g+0.001 ?1:0 )\""+"\n";
+			$nukeScript += " channel3 alpha"+"\n";
+			$nukeScript += " expr3 \" (g>pickcolor.g-0.001?1:0 )-(g>pickcolor.g+0.001 ?1:0 )\""+"\n";
+			$nukeScript += " name Nuke_ID_pass_taker1"+"\n";
+			$nukeScript += " selected true"+"\n";
+			$nukeScript += " xpos 54"+"\n";
+			$nukeScript += " ypos -126"+"\n";
+			$nukeScript += " addUserKnob {20 User_pickColor}"+"\n";
+			$nukeScript += " addUserKnob {18 pickcolor}"+"\n";
+			$nukeScript += " pickcolor {1 5 5}"+"\n";
+			$nukeScript += " addUserKnob {6 pickcolor_panelDropped l \"panel dropped state\" -STARTLINE +HIDDEN}"+"\n";
+			$nukeScript += "}"+"\n";
+			$nukeScript += "Premult {"+"\n";
+			$nukeScript += " name Premult2"+"\n";
+			$nukeScript += " selected true"+"\n";
+			$nukeScript += " xpos 222"+"\n";
+			$nukeScript += " ypos -126"+"\n";
+			$nukeScript += "}"+"\n";
+
+			text  -w 300 -al "left" -wordWrap 0 -l "Nuke Script Codes: select and drag the codes to Nuke ." ;
+			scrollField -ed 1 -w 280 -h 100 -bgc 0.2 0.2 0.2 -wordWrap 1 -text $nukeScript  nukeScript_scrollField_II;
+
+			text  -w 300 -al "left" -wordWrap 0 -l "::::::::::::::::::::::::::::: AOV Creator ::::::::::::::::::::::::" ;
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+				
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.3  -label "Create AOV object_id Pass "  -command  "tjh_Arnold_AOV_creator__add__customAov object_id";
+
+				button  -w 150 -backgroundColor 0.3 0.0 0.0 -label "Remove AOV object_id Pass "  -command  "tjh_Arnold_AOV_creator__remove__customAov object_id;";
+
+				setParent ..;
+			
+			text  -w 300 -al "left" -wordWrap on -l "::::::::::::::::::::::::::::: Set Object id  ::::::::::::::::::::::";
+			rowLayout -numberOfColumns 16 
+				-columnWidth6  18 18 18 18 18 18 
+				-columnWidth 7 18
+				-columnWidth 8 18
+				-columnWidth 9 18
+				-columnWidth 10 18
+				-columnWidth 11 18
+				-columnWidth 12 18
+				-columnWidth 13 18
+				-columnWidth 14 18
+				-columnWidth 15 18
+				-columnWidth 16 18
+				//-adjustableColumn 16
+				;
+				
+				button  -w 18  -label "1"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  1 " );
+				button  -w 18  -label "2"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  2 " );
+				button  -w 18  -label "3"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  3 " );
+				button  -w 18  -label "4"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  4 " );
+				button  -w 18  -label "5"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  5 " );
+				button  -w 18  -label "6"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  6 " );
+				button  -w 18  -label "7"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  7 " );
+				button  -w 18  -label "8"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  8 " );
+				button  -w 18  -label "9"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  9 " );
+				button  -w 18  -label "10"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  10 " );
+				button  -w 18  -label "11"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  11 " );
+				button  -w 18  -label "12"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  12 " );
+				button  -w 18  -label "13"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  13 " );
+				button  -w 18  -label "14"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  14 " );
+				button  -w 18  -label "15"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  15 " );
+				button  -w 18  -label "16"  -command  ("tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II  16 " );
+				setParent ..;
+			intSliderGrp  -w 300   -fieldMaxValue 10000 -fieldMinValue 1 -v 1 -minValue 1 -label "Set Object Id ( Method I I )" -field true tjh_Arnold_AOV_creator__intSliderGrp__objectIdSets_II;
+
+			//separator -h 10 -w 300;
+			
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+				
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.3  -label "Set Object Id "  -command  "tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected II  all_Same_for_selected ;tjh_Arnold_AOV_creator__GetCurrentPass;";
+
+				button  -w 150 -backgroundColor 0.3 0.0 0.0 -label "Delete AOV All Object Id "  -command  "tjh_Arnold_AOV_creator__Delete_All_ObjectId_Sets II";
+
+				setParent ..;
+
+
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+				
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.4 -label "Auto Object_Id Seperately "  -command  "tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected  II seperate_for_selected ;tjh_Arnold_AOV_creator__GetCurrentPass;";
+
+				text  -w 150 -al "left" -wordWrap on -l "   ";
+				//button  -w 150 -backgroundColor 1.0 0.7 1.0 -label "Delete AOV All Object Id Sets"  -command  "tjh_Arnold_AOV_creator__Delete_All_ObjectId_Sets";
+
+				setParent ..;
+			setParent ..;
+		setParent ..;
+
+
+		
+
+		///////////////////////////////////////////////////////////////////////////////////////
+		frameLayout -label "Material IDs Creator" -labelAlign "top"  -collapsable 1 -collapse 1
+					;
+			columnLayout;
+
+
+			text  -w 300 -al "left" -wordWrap on -l "   此方法用于为arnold以外材质节点id分层通道，包含两种算法，黑白通道和RGB通道.\n<使用方法>：\n 1.首先点击M01~M08创建创建全局 AOV Mat_id_01~08通道。此项决定了当前材质在哪个层中渲染。 Must create a AOV Mat_id pass first !!! 2.之后在材质编辑器中，选择材质节点(可多选)，点击1-16按钮即可创建黑白类型材质通道。id偏移单位：1*0.01。也可以手动输入id，还可以点击red green blue按钮设置快速红绿蓝色彩通道，之后可通过nuke直接使用。\n<原理说明>：\n黑白色彩层每个pass层支持无线多的材质组，红绿蓝色彩层每pass层仅支持三个材质组，不如黑白.可以通过如下nuke脚本提取此黑白层。红绿蓝层方式nuke可直接使用，类似redshift的 Puzzle matte层使用方式。";
+
+			text  -w 300 -al "left" -wordWrap on -l "   ";
+			$nukeScript = "";
+
+			$nukeScript += "set cut_paste_input [stack 0]"+"\n";
+			$nukeScript += "version 10.5 v5"+"\n";
+			$nukeScript += "push $cut_paste_input"+"\n";
+			$nukeScript += "Expression {"+"\n";
+			// id unit = 1  ,判断id增量系数为 +- 0.01*0.1=0.001
+			$nukeScript += " expr0 \" (g>pickcolor.g-0.001?1:0 )-(g>pickcolor.g+0.001 ?1:0 )\""+"\n";
+			$nukeScript += " expr2 \" (g>pickcolor.g-0.001?1:0 )-(g>pickcolor.g+0.001 ?1:0 )\""+"\n";
+			$nukeScript += " channel3 alpha"+"\n";
+			$nukeScript += " expr3 \" (g>pickcolor.g-0.001?1:0 )-(g>pickcolor.g+0.001 ?1:0 )\""+"\n";
+			$nukeScript += " name Nuke_ID_pass_taker1"+"\n";
+			$nukeScript += " selected true"+"\n";
+			$nukeScript += " xpos 54"+"\n";
+			$nukeScript += " ypos -126"+"\n";
+			$nukeScript += " addUserKnob {20 User_pickColor}"+"\n";
+			$nukeScript += " addUserKnob {18 pickcolor}"+"\n";
+			$nukeScript += " pickcolor {1 5 5}"+"\n";
+			$nukeScript += " addUserKnob {6 pickcolor_panelDropped l \"panel dropped state\" -STARTLINE +HIDDEN}"+"\n";
+			$nukeScript += "}"+"\n";
+			$nukeScript += "Premult {"+"\n";
+			$nukeScript += " name Premult2"+"\n";
+			$nukeScript += " selected true"+"\n";
+			$nukeScript += " xpos 222"+"\n";
+			$nukeScript += " ypos -126"+"\n";
+			$nukeScript += "}"+"\n";
+
+			text  -w 300 -al "left" -wordWrap 0 -l "Nuke Script Codes: select and drag the codes to Nuke ." ;
+			scrollField -ed 1 -w 280 -h 100 -bgc 0.2 0.2 0.2 -wordWrap 1 -text $nukeScript  nukeScript_scrollField_III;
+			text  -w 300 -al "left" -wordWrap 0 -l "::::::::::::::::::::::::::::: AOV Creator ::::::::::::::::::::::::" ;
+
+			rowColumnLayout -numberOfColumns 9
+				-columnWidth 1 60
+				-columnWidth 2 30
+				-columnWidth 3 30
+				-columnWidth 4 30
+				-columnWidth 5 30
+				-columnWidth 6 30
+				-columnWidth 7 30
+				-columnWidth 8 30
+				-columnWidth 9 30		
+				
+				;
+				
+				textField -w 60 -text "Mat_id_01" tjh_Arnold_AOV_creator__customAov_Mat_id_textField;
+				//text  -w 150 -al "left" -wordWrap 0 -l " " ;
+				button  -w 20 -backgroundColor 0.0 0.0 0.4 -label "M01"  -command  "tjh_Arnold_AOV_creator__add_Mat_id_customAov \"01\";tjh_Arnold_AOV_creator__GetCurrentPass;";
+				button  -w 20 -backgroundColor 0.0 0.0 0.4 -label "M02"  -command  "tjh_Arnold_AOV_creator__add_Mat_id_customAov \"02\";tjh_Arnold_AOV_creator__GetCurrentPass;";
+				button  -w 20 -backgroundColor 0.0 0.0 0.4 -label "M03"  -command  "tjh_Arnold_AOV_creator__add_Mat_id_customAov \"03\";tjh_Arnold_AOV_creator__GetCurrentPass;";
+				button  -w 20 -backgroundColor 0.0 0.0 0.4 -label "M04"  -command  "tjh_Arnold_AOV_creator__add_Mat_id_customAov \"04\";tjh_Arnold_AOV_creator__GetCurrentPass;";
+				button  -w 20 -backgroundColor 0.0 0.0 0.4 -label "M05"  -command  "tjh_Arnold_AOV_creator__add_Mat_id_customAov \"05\";tjh_Arnold_AOV_creator__GetCurrentPass;";
+				button  -w 20 -backgroundColor 0.0 0.0 0.4 -label "M06"  -command  "tjh_Arnold_AOV_creator__add_Mat_id_customAov \"06\";tjh_Arnold_AOV_creator__GetCurrentPass;";
+				button  -w 20 -backgroundColor 0.0 0.0 0.4 -label "M07"  -command  "tjh_Arnold_AOV_creator__add_Mat_id_customAov \"07\";tjh_Arnold_AOV_creator__GetCurrentPass;";
+				button  -w 20 -backgroundColor 0.0 0.0 0.4 -label "M08"  -command  "tjh_Arnold_AOV_creator__add_Mat_id_customAov \"08\";tjh_Arnold_AOV_creator__GetCurrentPass;";
+
+				setParent ..; 
+
+			//separator -h 10 -w 300;
+			text  -w 300 -al "left" -wordWrap on -l "::::::::::::::::::::::::::::: Set Materials id  ::::::::::::::::::::::";
+
+			rowLayout -numberOfColumns 16 
+				-columnWidth6  18 18 18 18 18 18 
+				-columnWidth 7 18
+				-columnWidth 8 18
+				-columnWidth 9 18
+				-columnWidth 10 18
+				-columnWidth 11 18
+				-columnWidth 12 18
+				-columnWidth 13 18
+				-columnWidth 14 18
+				-columnWidth 15 18
+				-columnWidth 16 18
+				//-adjustableColumn 16
+				;
+				
+				button  -w 18  -label "1"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  1 1 1 " );
+				button  -w 18  -label "2"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  2 2 2 " );
+				button  -w 18  -label "3"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  3 3 3 " );
+				button  -w 18  -label "4"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  4 4 4 " );
+				button  -w 18  -label "5"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  5 5 5 " );
+				button  -w 18  -label "6"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  6 6 6 " );
+				button  -w 18  -label "7"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  7 7 7 " );
+				button  -w 18  -label "8"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  8 8 8 " );
+				button  -w 18  -label "9"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  9 9 9 " );
+				button  -w 18  -label "10"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  10 10 10 " );
+				button  -w 18  -label "11"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  11 11 11 " );
+				button  -w 18  -label "12"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  12 12 12 " );
+				button  -w 18  -label "13"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  13 13 13 " );
+				button  -w 18  -label "14"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  14 14 14 " );
+				button  -w 18  -label "15"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  15 15 15 " );
+				button  -w 18  -label "16"  -command  ("tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected  quick_Same_for_selected  16 16 16 " );
+				setParent ..;
+
+
+			//最大id数 60
+			intSliderGrp  -w 300     -fieldMaxValue 10000 -fieldMinValue 1 -v 1 -minValue 1 -label "Set Material Id" -field true tjh_Arnold_AOV_creator__intSliderGrp__MaterialIdSets;
+
+			//separator -h 10 -w 300;
+			
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+				
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.4 -label "Set Material Id "  -command  "tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected all_Same_for_selected 0 0 0;tjh_Arnold_AOV_creator__GetCurrentPass;";
+
+				rowColumnLayout -numberOfColumns 3
+				-columnWidth 1 50
+				-columnWidth 2 50
+				-columnWidth 3 50
+				;
+
+					button  -w 50 -backgroundColor 0.3 0.0 0.0 -label "Red"  -command  "tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected quick_Same_for_selected 100 0 0;";
+					button  -w 50 -backgroundColor 0.0 0.3 0.0 -label "Green"  -command  "tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected quick_Same_for_selected 0 100 0;";
+					button  -w 50 -backgroundColor 0.0 0.0 0.3 -label "Blue"  -command  "tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected quick_Same_for_selected 0 0 100;";
+
+					setParent ..;
+				setParent ..;
+
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 150
+				-columnWidth 2 150;
+				
+				
+				button  -w 150 -backgroundColor 0.0 0.0 0.4 -label "Auto Set Material Id  Seperately  "  -command  "tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected seperate_for_selected 0 0 0;  tjh_Arnold_AOV_creator__GetCurrentPass;";
+
+				//text  -w 300 -al "left" -wordWrap on -l "   ";
+				button  -w 150 -backgroundColor 0.0 0.0 0.0 -label "Delete AOV All Material Id"  -command  "tjh_Arnold_AOV_creator__Delete_All_Mat_Id_Sets";
+
+				setParent ..;
+			setParent ..;
+		setParent ..;
+
+		//////////////////////////////////////  end //////////////////////////////////////////
+		
+		
+		
+		setParent ..;
+
+	showWindow;
+
+	// updata color for checkbox
+	tjh_Arnold_AOV_creator__GetCurrentPass;
+}
+
+
+//==============================================================================
+//=======================   main UI end    =================================
+//=================================================================================
+
+
+
+global proc tjh_Arnold_AOV_creator__add_customAov()
+{
+	
+	string $customName = ` textField -q -text  tjh_Arnold_AOV_creator__customAov_textField `;
+	if(!` objExists ("aiAOV_"+$customName) `)
+	{	
+		python("from mtoa import * ;aovs.AOVInterface().addAOV(\""+$customName+"\")");
+	}
+	else{ warning ("aiAOV_"+$customName+" is built already !");}
+
+}
+
+global proc tjh_Arnold_AOV_creator__delete_customAov()
+{
+	
+	string $customName = ` textField -q -text  tjh_Arnold_AOV_creator__customAov_textField `;
+	if(` objExists ("aiAOV_"+$customName) `)
+	{	
+		python("from mtoa import * ;aovs.AOVInterface().removeAOV(\""+$customName+"\")");
+	}
+	else{ warning ("aiAOV_"+$customName+" is built already !");}
+
+}
+
+
+global proc tjh_Arnold_AOV_creator__Create_motionvector_Setting()
+{
+	
+	if(!` objExists ("aiAOV_motionvector") `)
+		python("aovs.AOVInterface().addAOV(\"motionvector\")");
+	
+	setAttr "defaultArnoldRenderOptions.motion_blur_enable" 1;
+	setAttr "defaultArnoldRenderOptions.mb_object_deform_enable" 1;
+	setAttr "defaultArnoldRenderOptions.mb_camera_enable" 1;
+
+	int $motionblur_rangeType = ` getAttr "defaultArnoldRenderOptions.range_type" `;
+	
+	
+	string $camerShapes[] = ` ls -type "camera" `;
+	string $sel;
+
+	//$motionblur_rangeType | 0：start on frame | 1: center on frame | 2: end on frame
+	for( $sel in $camerShapes)
+	{
+		if ($motionblur_rangeType == 0)//start on frame
+		{
+			setAttr ($sel+".aiShutterStart") 0;
+			setAttr ($sel+".aiShutterEnd") 0;			
+		}
+
+		if ($motionblur_rangeType == 1)//center on frame
+		{
+			setAttr ($sel+".aiShutterStart") 0.5;
+			setAttr ($sel+".aiShutterEnd") 0.5;			
+		}
+
+		if ($motionblur_rangeType == 2)//end on frame
+		{
+			setAttr ($sel+".aiShutterStart") 1;
+			setAttr ($sel+".aiShutterEnd") 1;			
+		}
+	}
+}
+
+
+global proc tjh_Arnold_AOV_creator__Reset_motionvector_Setting()
+{
+	if(` objExists ("aiAOV_motionvector") `)
+	python("from mtoa import * ;aovs.AOVInterface().removeAOV(\"motionvector\")");
+	
+	
+	setAttr "defaultArnoldRenderOptions.motion_blur_enable" 0;
+	//setAttr "defaultArnoldRenderOptions.mb_object_deform_enable" 1;
+	//setAttr "defaultArnoldRenderOptions.mb_camera_enable" 1;
+
+	//int $motionblur_rangeType = ` getAttr "defaultArnoldRenderOptions.range_type" `;
+	
+	
+	string $camerShapes[] = ` ls -type "camera" `;
+	string $sel;
+
+	//$motionblur_rangeType | 0：start on frame | 1: center on frame | 2: end on frame
+	for( $sel in $camerShapes)
+	{
+					
+			setAttr ($sel+".aiShutterStart") 0;
+			setAttr ($sel+".aiShutterEnd") 1;
+		
+	}
+
+
+}
+
+
+
+
+//updata UI color  for all checkbox
+global proc tjh_Arnold_AOV_creator__GetCurrentPass()
+{
+		
+	global string $tjh_Arnold_AOV_NAMES[];
+	global string $tjh_arnold__aiUtilityAOVs[];
+	global string $tjh_all_custom_Aovs_NAMES[];
+
+	/*
+	//clear all "tjh_Arnold_AOV_creator_checkBox_"   checkbox.
+	string $all_checkbox[] = ` lsUI -type "checkbox" `;
+	string $checkbox;
+	for($checkbox in $all_checkbox)
+	{
+		if(` match "tjh_Arnold_AOV_creator_checkBox_" $checkbox ` == "tjh_Arnold_AOV_creator_checkBox_")
+		deleteUI $checkbox;
+	}
+	*/
+
+
+	//clear all "tjh_Arnold_AOV_creator_checkBox_"   popupMenus.	
+	string $all_popupMenus[] = ` lsUI -type "popupMenu" `;
+	for($popupMenu in $all_popupMenus)
+	{
+		if(` match "tjh_Arnold_AOV_creator_checkBox_" $popupMenu ` == "tjh_Arnold_AOV_creator_checkBox_")
+		deleteUI $popupMenu;
+	}
+
+	//tjh_Arnold_AOV_creator__setAllOn_checkBox 0;
+	
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;
+
+	
+	//restore default all colors for  checkBox UI
+	
+	for($i = 0; $i<size($tjh_Arnold_AOV_NAMES); $i++)
+	{
+		
+		 checkBox -e -bgc 0.2 0.3 0.2  ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]);
+		 //add popupMenu for checkbox
+		
+		if(!` objExists ("aiAOV_"+$tjh_Arnold_AOV_NAMES[$i])` && ` checkBox -q -exists ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]) `)
+		{
+		
+			popupMenu  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]) ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]+"_popupMenu");
+			
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]+"_popupMenu") -l "Updata UI" -c "evalDeferred \"tjh_Arnold_AOV_creator__GetCurrentPass;\"";
+
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]+"_popupMenu") -divider 1;
+			
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]+"_popupMenu") -l "Open all AOVs Plugin_Toggles" -c "evalDeferred \"tjh_Arnold_AOV_creator__setAllOn_checkBox 1 \"";
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]+"_popupMenu") -l "Close all AOVs Plugin_Toggles" -c "evalDeferred \"tjh_Arnold_AOV_creator__setAllOn_checkBox 0 \"";
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]+"_popupMenu") -l "Reverse all AOVs Plugin_Toggles" -c "evalDeferred \"tjh_Arnold_AOV_creator__setAllOn_checkBox 2 \"";
+			
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]+"_popupMenu") -divider 1;
+			
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]+"_popupMenu") -l "Add Selected AOV Pass" -c "evalDeferred \"tjh_Arnold_AOV_creator__create_RenderLayers createSelected\"";
+			
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]+"_popupMenu") -divider 1;
+			
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]+"_popupMenu") -l "Remove Selected AOV Pass" -c "evalDeferred \"tjh_Arnold_AOV_creator__create_RenderLayers deleteSelected\"";
+						
+		}
+			
+	}
+
+	//change color for aiUtilityAOVs checkBox 
+	
+	for($i = 0; $i<size($tjh_arnold__aiUtilityAOVs); $i++)
+	{
+		
+		checkBox -e -bgc 0.2 0.2 0.3  ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_arnold__aiUtilityAOVs[$i]);
+	}
+	
+	//change color for custom checkBox 
+	
+	for($i = 0; $i<size($tjh_all_custom_Aovs_NAMES); $i++)
+	{
+		
+		checkBox -e -bgc 0.3 0.2 0.2  ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_all_custom_Aovs_NAMES[$i]);
+	}	
+	
+	/*
+	//clear all "tjh_Arnold_AOV_creator_checkBox_"   popupMenus.	
+	string $all_popupMenus[] = ` lsUI -type "popupMenu" `;
+	for($popupMenu in $all_popupMenus)
+	{
+		if(` match "tjh_Arnold_AOV_creator_checkBox_" $popupMenu ` == "tjh_Arnold_AOV_creator_checkBox_")
+		deleteUI $popupMenu;
+	}
+	*/
+	
+	//change color for current AOVs built  and  add right button popupMenus
+	for($sel in $all_aiAovs)
+	{
+		int $toggle = `  getAttr ($sel+".enabled") `;
+		
+		string $nameString = ` getAttr ($sel+".name") `;
+		
+		//delete rubbish AOVs
+		if($nameString == ""){	delete $sel;}
+
+		
+		if(` checkBox -q -exists ("tjh_Arnold_AOV_creator_checkBox_"+$nameString) `)
+		{
+			//change color for all checkBox
+			checkBox -e -bgc  0.6 0.6 0  ("tjh_Arnold_AOV_creator_checkBox_"+$nameString) ;
+			checkBox -e -v  $toggle  ("tjh_Arnold_AOV_creator_checkBox_"+$nameString) ;
+		
+			//add popupMenu for checkbox
+			
+			popupMenu  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString) ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu");
+			
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Updata UI" -c "evalDeferred \"tjh_Arnold_AOV_creator__GetCurrentPass;\"";
+
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -divider 1;
+			
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Open all AOVs Plugin_Toggles" -c "evalDeferred \"tjh_Arnold_AOV_creator__setAllOn_checkBox 1 \"";
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Close all AOVs Plugin_Toggles" -c "evalDeferred \"tjh_Arnold_AOV_creator__setAllOn_checkBox 0 \"";
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Reverse all AOVs Plugin_Toggles" -c "evalDeferred \"tjh_Arnold_AOV_creator__setAllOn_checkBox 2 \"";
+			
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -divider 1;
+			
+
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Select Current built AOV Node " -c  ("evalDeferred \"tjh_Arnold_AOV_creator___pass_popupMenu__Select_AOV_Node "+$nameString+"\"");
+
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -divider 1;			
+
+			//menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Get Current All" -c "evalDeferred \"tjh_Arnold_AOV_creator__GetCurrentPass;\"";
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Disable All built AOVs" -c "evalDeferred \"tjh_Arnold_AOV_creator__DisableAllPass\"";
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Enable All built AOVs" -c "evalDeferred \"tjh_Arnold_AOV_creator__EnableAllPass\"";
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Reverse All built AOVs" -c "evalDeferred \"tjh_Arnold_AOV_creator__reverseEnablePass\"";
+
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -divider 1;
+
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Remove All Overrides for built AOVs" -c "evalDeferred \"tjh_Arnold_AOV_creator__DisableAllPassOverrides\"";			
+			
+
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -divider 1;		
+			
+			
+			//menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Add New Output Driver" -c ("tjh_Arnold_AOV_creator___pass_popupMenu__Add_New_Output_Driver "+$nameString);
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Remove Current built AOV " -c ("evalDeferred \"tjh_Arnold_AOV_creator___pass_popupMenu__Remove_AOV "+$nameString+"\";evalDeferred \"tjh_Arnold_AOV_creator__GetCurrentPass;\"");
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Remove Selected AOV Pass" -c "evalDeferred \"tjh_Arnold_AOV_creator__create_RenderLayers deleteSelected\"";
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Remove All built AOVs" -c "delete ` ls -type \"aiAOV\" `;evalDeferred \"tjh_Arnold_AOV_creator__GetCurrentPass;\"";
+
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -divider 1;
+			
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Select Driver" -c ("evalDeferred \"tjh_Arnold_AOV_creator___pass_popupMenu__Select_Driver "+$nameString+"\"");
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -l "Select Filter" -c ("evalDeferred \"tjh_Arnold_AOV_creator___pass_popupMenu__Select_Filter "+$nameString+"\"");
+
+			menuItem  -parent ("tjh_Arnold_AOV_creator_checkBox_"+$nameString+"_popupMenu") -divider 1;
+			
+			
+		}
+
+	}
+
+	//tjh_Arnold_AOV_creator__create_checkBox_changeCommand;
+
+	frameLayout -e -collapse 0 tjh_Arnold_AOV_creator_____AOVs_Creator_frameLayout;
+
+}
+
+global proc tjh_Arnold_AOV_creator___pass_popupMenu__Select_AOV_Node(string $passName)
+{
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;
+	for($sel in $all_aiAovs)
+	{
+		int $toggle = `  getAttr ($sel+".enabled") `;
+		
+		string $nameString = ` getAttr ($sel+".name") `;
+		
+		if($nameString==$passName )
+		{
+			select -r $sel;
+
+		}
+	}
+}
+
+global proc tjh_Arnold_AOV_creator___pass_popupMenu__Add_New_Output_Driver(string $passName)
+{
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;
+	for($sel in $all_aiAovs)
+	{
+		int $toggle = `  getAttr ($sel+".enabled") `;
+		
+		string $nameString = ` getAttr ($sel+".name") `;
+		
+		if( $nameString==$passName )
+		{
+			//
+
+		}
+	}
+}
+
+global proc tjh_Arnold_AOV_creator___pass_popupMenu__Remove_AOV(string $passName)
+{
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;
+	for($sel in $all_aiAovs)
+	{
+		int $toggle = `  getAttr ($sel+".enabled") `;
+		
+		string $nameString = ` getAttr ($sel+".name") `;
+		
+		if( $nameString==$passName )
+		{
+			delete  $sel;		
+
+		}
+	}
+}
+
+global proc tjh_Arnold_AOV_creator___pass_popupMenu__Select_Driver(string $passName)
+{
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;
+	for($sel in $all_aiAovs)
+	{
+		int $toggle = `  getAttr ($sel+".enabled") `;
+		
+		string $nameString = ` getAttr ($sel+".name") `;
+		
+		
+		if( $nameString==$passName )
+		{
+			string $nodes[];
+			$nodes  = ` listConnections -s 1 -d 0 ($sel + ".outputs[0].driver") `;
+			select - r $nodes[0];
+		}
+	}
+}
+
+global proc tjh_Arnold_AOV_creator___pass_popupMenu__Select_Filter(string $passName)
+{
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;
+	for($sel in $all_aiAovs)
+	{
+		int $toggle = `  getAttr ($sel+".enabled") `;
+		
+		string $nameString = ` getAttr ($sel+".name") `;
+		
+		if( $nameString==$passName )
+		{
+			string $nodes[];
+			$nodes  = ` listConnections -s 1 -d 0 ($sel + ".outputs[0].filter") `;
+			select - r $nodes[0];
+		}
+	}
+}
+
+
+
+global proc tjh_Arnold_AOV_creator__EnableAllPass()
+{
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;
+	string $sel;
+	for($sel in $all_aiAovs)
+	{
+		setAttr ($sel+".enabled") 1;
+	}
+
+	tjh_Arnold_AOV_creator__GetCurrentPass;
+
+}
+
+global proc tjh_Arnold_AOV_creator__DisableAllPass()
+{
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;
+	string $sel;
+	for($sel in $all_aiAovs)
+	{
+		setAttr ($sel+".enabled") 0;
+	}
+
+	tjh_Arnold_AOV_creator__GetCurrentPass;
+
+}
+
+global proc tjh_Arnold_AOV_creator__reverseEnablePass()
+{
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;
+	string $sel;
+	for($sel in $all_aiAovs)
+	{
+		int $toggle = `  getAttr ($sel+".enabled") `;
+		if($toggle == 1)setAttr ($sel+".enabled") 0;
+		if($toggle == 0)setAttr ($sel+".enabled") 1;
+	}
+	tjh_Arnold_AOV_creator__GetCurrentPass;
+}
+
+
+
+////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+//                        preset
+/////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+
+
+
+
+//UI
+global proc tjh_Arnold_AOV_preset()
+{
+
+
+	if (`windowPref -exists tjh_Arnold_AOV_presetWindow`)
+            windowPref -remove  tjh_Arnold_AOV_presetWindow;     
+
+                  
+        if (`window -exists tjh_Arnold_AOV_presetWindow`)
+       deleteUI tjh_Arnold_AOV_presetWindow;
+
+
+	window -bgc 0.276 0.307 0.426	 -rtf 1 -w 300 -h 200  tjh_Arnold_AOV_presetWindow;
+	columnLayout -columnAlign "center";
+
+		text  -w 300  -fn "boldLabelFont"  -al "center" -l ("\n tjh_Arnold_AOV_creator preset \n");
+
+
+		//text  -w 300   -al "center" -l ("   ");
+
+		string $files[];$files = ` tjh_Arnold_AOV_Preset__getPresetNames `;
+			
+		global string $tjh_Arnold_AOV_presetTextScrollList;$tjh_Arnold_AOV_presetTextScrollList=` textScrollList -w 300 -h 300 -numberOfRows 8 -allowMultiSelection false `;
+
+		//text  -w 300   -al "center" -l ("   ");
+
+
+		//refresh the list for textScrollList
+		string $temp;
+		//change the textScrollList constant.
+		textScrollList -e -ra $tjh_Arnold_AOV_presetTextScrollList;//clear old list
+		string $cmd="textScrollList -e "; 
+		for($temp in $files){$cmd+=" -append \""+$temp+"\" ";};
+		$cmd+= $tjh_Arnold_AOV_presetTextScrollList+";";
+		eval $cmd;
+
+		
+
+		rowColumnLayout -numberOfRows 1;
+
+		button -al "center"  -w 100 -ann "create preset"  -label "create "  -command  "tjh_Arnold_AOV_create_preset_window ";
+		button -al "center"  -w 100 -ann "Load preset"  -label "Load "  -command  "tjh_Arnold_AOV_read_preset";
+		button -al "center"  -w 100 -ann "Delete preset"  -label "Delete"   -command  "tjh_Arnold_AOV_delete_preset";
+
+
+showWindow tjh_Arnold_AOV_presetWindow;
+
+}
+		    
+global proc string[] tjh_Arnold_AOV_Preset__getPresetNames()
+{ 
+	
+	global string $tjh_Arnold_AOV_Preset_datas[];	
+	global string $tjh_Arnold_AOV_preset_NAMES[];
+
+	string $presetNames[];
+	int $id = 0;
+
+	for($i = 0; $i<size($tjh_Arnold_AOV_Preset_datas); $i++)
+	{
+		if($tjh_Arnold_AOV_Preset_datas[$i] == "<preset>")
+		{
+			$presetNames[$id] =  $tjh_Arnold_AOV_Preset_datas[$i+1];
+			$id++;
+		}
+
+	}
+
+return $presetNames;
+}
+
+
+global proc tjh_Arnold_AOV_create_preset_window()
+
+{
+global string $tjh_Arnold_AOV_Preset_datas[];
+
+		
+	
+		if (`windowPref -exists tjh_Arnold_AOV_presetSaveWindow `)
+			    windowPref -remove  tjh_Arnold_AOV_presetSaveWindow;     
+
+				  
+				  if (`window -exists tjh_Arnold_AOV_presetSaveWindow `)
+				  deleteUI tjh_Arnold_AOV_presetSaveWindow;
+
+
+		window  -menuBar true -rtf 1  -w 200 -h 50 tjh_Arnold_AOV_presetSaveWindow;
+
+		columnLayout;	
+
+		//separator -h 10 -w 200;
+
+		text -w 200 -h 30 -al "left" -l "  Preset Name:";
+
+		string $textField = ` textField -w 200  ` ;
+
+		string $savecmd = "string $name =` textField -q -text  "+$textField+"`;tjh_Arnold_AOV_Preset_management \"save\" $name ;";
+
+		string $deletecmd = " deleteUI tjh_Arnold_AOV_presetSaveWindow;";
+	
+		separator -style "none" -h 10 -w 200;
+
+		rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 100
+				-columnWidth 2 100;
+			
+			button -l "save" -c $savecmd;
+			button -l "Close" -c $deletecmd;
+			setParent ..;
+		showWindow;
+
+}
+
+
+global proc tjh_Arnold_AOV_read_preset_initial_readDataFromPresetFile()
+{
+	global string  $tjh_Arnold_AOV_Preset_datas[];		
+	
+	string $ScriptPath = `whatIs "tjh_Arnold_AOV_creator"`;	
+	int $srcPath_size = size($ScriptPath) ;
+	$ScriptPath = `substring $ScriptPath 25 $srcPath_size `;
+	$ScriptPath = dirname( $ScriptPath )+"/";
+	
+	string $melFileName = $ScriptPath + "tjh_Arnold_AOV_creator.preset.mel";
+	print ("$melFileName="+$melFileName+"\n");
+
+	if(` filetest -e $melFileName `)//read the datas from file
+	{
+		int    $fileDesId=` fopen $melFileName "a"`;
+		eval("source \""+$melFileName+"\";");
+		fclose $fileDesId;
+
+	}else{
+	
+		tjh_Arnold_AOV_creator__reset_presets;
+	}
+
+
+print "\n tjh_Arnold_AOV_read_preset file For Initial Ok  !";	
+
+}
+
+
+global proc tjh_Arnold_AOV_read_preset()
+
+{
+	global string $warning_select;
+
+	global string $tjh_Arnold_AOV_presetTextScrollList;
+	string $selectItem[]; $selectItem = ` textScrollList -q -si $tjh_Arnold_AOV_presetTextScrollList `;
+	
+
+	if($selectItem[0]!="")
+	{
+		tjh_Arnold_AOV_Preset__load $selectItem[0];
+
+	}else{warning $warning_select;};
+
+}
+
+
+
+
+global proc tjh_Arnold_AOV_delete_preset()
+
+{
+	global string $warning_select;
+	global string $tjh_Arnold_AOV_presetTextScrollList;
+	string $selectItem[]; $selectItem = ` textScrollList -q -si $tjh_Arnold_AOV_presetTextScrollList `;
+
+	if($selectItem[0]!="")
+	{
+		tjh_Arnold_AOV_Preset_management "delete" $selectItem[0];
+
+	}else{warning $warning_select;};
+
+	//update the preset UI
+
+		tjh_Arnold_AOV_preset;
+}
+
+
+
+
+
+//menuItems Preset UI updata
+global proc tjh_Arnold_AOV_Preset__menuItems()
+{ 
+	
+	global string $tjh_Arnold_AOV_Preset_datas[];	
+	global string $tjh_Arnold_AOV_NAMES[];
+
+	for($i = 0; $i<size($tjh_Arnold_AOV_Preset_datas); $i++)
+	{
+		if($tjh_Arnold_AOV_Preset_datas[$i] == "<preset>")
+		menuItem  -label $tjh_Arnold_AOV_Preset_datas[$i+1] -c ("tjh_Arnold_AOV_Preset__load \""+ $tjh_Arnold_AOV_Preset_datas[$i+1]+"\"");
+	}
+
+
+}
+
+
+//menuItems Preset UI window management
+global proc tjh_Arnold_AOV_Preset_management__windowUI() //for "save"
+
+{ 
+	global string $tjh_Arnold_AOV_Preset_datas[];
+
+		
+	
+		if (`windowPref -exists tjh_Arnold_AOV_creator_presetSaveWindow`)
+			    windowPref -remove  tjh_Arnold_AOV_creator_presetSaveWindow;     
+
+				  
+				  if (`window -exists tjh_Arnold_AOV_creator_presetSaveWindow`)
+				  deleteUI tjh_Arnold_AOV_creator_presetSaveWindow;
+
+
+		window  -menuBar true -rtf 1  -w 200 -h 50 tjh_Arnold_AOV_creator_presetSaveWindow;
+
+		columnLayout;	
+
+		//separator -h 10 -w 200;
+
+		text -w 200 -h 30 -al "left" -l "  AOV Preset Name:";
+
+		string $textField = ` textField -w 200  ` ;
+
+		string $savecmd = "string $name =` textField -q -text  "+$textField+"`;tjh_Arnold_AOV_Preset_management \"save\" $name ;";
+
+		string $closecmd = " deleteUI tjh_Arnold_AOV_creator_presetSaveWindow;";
+	
+		separator -style "none" -h 10 -w 200;
+
+		rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 100
+				-columnWidth 2 100;
+			
+			button -l "save" -c $savecmd;
+			button -l "Close" -c $closecmd;
+			setParent ..;
+		showWindow;
+
+
+
+
+
+}
+
+
+
+global proc tjh_Arnold_AOV_Preset_management(string $method,string $presetName)
+
+// $method : "save" | "delete"
+{ 
+	global string $tjh_Arnold_AOV_Preset_datas[];
+	global string $tjh_Arnold_AOV_NAMES[];
+		string $oldDatas[];
+	$oldDatas = $tjh_Arnold_AOV_Preset_datas;
+
+
+	if($method == "save")
+	{
+		//check presetName exist or not
+		for($i = 0; $i<size($oldDatas); $i++)
+		{			
+
+			if($oldDatas[$i] == "<preset>")
+			{
+				if($oldDatas[$i+1] == $presetName)
+				{
+					$presetName += "_"+tjh_rand_Namer(6) ;
+				}
+			}
+
+		}//for end
+
+		int $newId = size($tjh_Arnold_AOV_Preset_datas);
+
+		$tjh_Arnold_AOV_Preset_datas[$newId] = "<preset>";
+		$newId++;
+
+		$tjh_Arnold_AOV_Preset_datas[$newId] = $presetName;
+		$newId++;
+
+		for($i = 0; $i<size($tjh_Arnold_AOV_NAMES); $i++)
+		{			
+			$tjh_Arnold_AOV_Preset_datas[$newId]=` checkBox -q -v ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]) `;
+			$newId++;
+		}//for end
+
+
+		deleteUI tjh_Arnold_AOV_presetSaveWindow;
+
+		 
+		 tjh_Arnold_AOV_Preset__saveDataToPresetFile_And_updateUI;
+
+		//update the preset UI
+
+		tjh_Arnold_AOV_preset;
+	
+
+		 tjh_Arnold_AOV_Preset__load $presetName;
+	
+	}
+
+
+	if($method == "delete")
+	{
+		string $saveOldPresetDatas[] = $tjh_Arnold_AOV_Preset_datas;
+		
+		clear $tjh_Arnold_AOV_Preset_datas;
+		int $newId = 0;
+
+		for($i = 0; $i<size($oldDatas); $i++)
+		{			
+
+			if($oldDatas[$i] == "<preset>")
+			{
+				if($oldDatas[$i+1] == $presetName)
+				{
+					$i+=2+size($tjh_Arnold_AOV_NAMES);
+				}
+			}
+
+			$tjh_Arnold_AOV_Preset_datas[$newId] = $oldDatas[$i];
+			$newId++;
+		}//for end		
+	
+		string $newPresetDatas[] =  $tjh_Arnold_AOV_Preset_datas;
+		//updata for menuItems preset
+		tjh_Arnold_AOV_Preset__saveDataToPresetFile_And_updateUI;
+
+
+		//update the preset UI
+
+		tjh_Arnold_AOV_preset;
+
+		//load old datas from cache $saveOldPresetDatas and restore old UI datas display;
+		
+		 clear $tjh_Arnold_AOV_Preset_datas;
+
+		 $tjh_Arnold_AOV_Preset_datas = $saveOldPresetDatas;
+
+		 tjh_Arnold_AOV_Preset__load $presetName;
+
+		 //restore the new result datas
+
+		clear $tjh_Arnold_AOV_Preset_datas;
+
+		$tjh_Arnold_AOV_Preset_datas = $newPresetDatas;
+
+	}
+        
+
+}//proc end
+
+
+
+global proc string  tjh_rand_Namer(int $nameLength)
+{
+	string $dict[]={"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"};
+	string $finalName= "";
+	for($i=0;$i<$nameLength;$i++)
+	{
+		$finalName += $dict[int(rand(26))];	
+	}
+
+return $finalName;
+} //tjh_rand_Namer(6);
+
+
+
+//menuItems Preset load
+global proc tjh_Arnold_AOV_Preset__load(string $presetName)
+{ 
+	global string $tjh_Arnold_AOV_Preset_datas[];
+	
+	global string $tjh_Arnold_AOV_NAMES[];
+
+	tjh_Arnold_AOV_creator__setAllOn_checkBox 0;
+
+	for($i = 0; $i<size($tjh_Arnold_AOV_Preset_datas); $i++)
+	{
+		if($tjh_Arnold_AOV_Preset_datas[$i] == "<preset>")
+		{
+			if($tjh_Arnold_AOV_Preset_datas[$i+1] == $presetName)
+			{
+				
+				for($k = 0; $k<size($tjh_Arnold_AOV_NAMES); $k++)
+				{
+					if($tjh_Arnold_AOV_Preset_datas[$i+2+$k] == "<preset>" || $tjh_Arnold_AOV_Preset_datas[$i+2+$k] == "")
+					{
+						break;
+					}else{
+
+						checkBox -e -v (int($tjh_Arnold_AOV_Preset_datas[$i+2+$k]))  ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$k]);
+
+					}
+
+				}
+			}
+		}
+	}
+
+	tjh_Arnold_AOV_creator__create_checkBox_changeCommand;
+}
+
+
+global proc tjh_Arnold_AOV_Preset__saveDataToPresetFile_And_updateUI()
+{ 
+
+	global string  $tjh_Arnold_AOV_Preset_datas[];		
+	
+	string $ScriptPath = `whatIs "tjh_Arnold_AOV_creator"`;	
+	int $srcPath_size = size($ScriptPath) ;
+	$ScriptPath = `substring $ScriptPath 25 $srcPath_size `;
+	$ScriptPath = dirname( $ScriptPath )+"/";
+	
+	string $melFileName = $ScriptPath + "tjh_Arnold_AOV_creator.preset.mel";
+	print ("$melFileName="+$melFileName+"\n");
+
+
+	int    $fileDesId=` fopen $melFileName "a"`;
+	
+	fprint $fileDesId "global string  $tjh_Arnold_AOV_Preset_datas[];$tjh_Arnold_AOV_Preset_datas={";
+	int $size = size($tjh_Arnold_AOV_Preset_datas);
+	for($i=0;$i<$size;$i++)
+	{
+		if($i<($size-1)) fprint $fileDesId ("\""+$tjh_Arnold_AOV_Preset_datas[$i]+"\",");
+		if($i==($size-1)) fprint $fileDesId ("\""+$tjh_Arnold_AOV_Preset_datas[$i]+"\"");
+	}
+	fprint $fileDesId "};";
+
+	fclose $fileDesId;
+
+	//updata UI.
+	tjh_Arnold_AOV_creator;
+
+print "\n Save The Out Data To Preset File For Initial Ok  !";
+}
+
+
+
+
+
+/////////////////////////////////////////////////////////////
+//			preset end
+//////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+// all arnold AOVs checkBox builting
+
+global proc tjh_Arnold_AOV_creator__create_checkBox()
+{
+	global string $tjh_Arnold_AOV_NAMES[];
+	global string $tjh_arnold__aiUtilityAOVs[];
+	
+	global int $tjh_Arnold_AOV_Global_current_checkBox_selectionList[];
+
+	//get custom AOVs
+	global string $tjh_all_custom_Aovs_NAMES[];
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;	
+	int $custom_id = 0;
+
+	string $default_aov_name;
+	string $aov;
+
+	
+	for($aov in $all_aiAovs)
+	{	
+		
+		int $result = 0;//1 not custom ,0 true custom	
+		string $nameString;
+		for($default_aov_name in $tjh_Arnold_AOV_NAMES)
+		{		
+			$nameString = ` getAttr ($aov+".name") `;			
+			
+			if($nameString == $default_aov_name )
+			{
+				$result += 1;					
+			}
+			
+		}
+
+		if($result==0)
+		{
+			$tjh_all_custom_Aovs_NAMES[$custom_id]=$nameString;
+			$custom_id++;
+		
+		}
+	}
+	//print "$tjh_all_custom_Aovs_NAMES = \n";
+	//print $tjh_all_custom_Aovs_NAMES ; 
+
+	//unite the custom and default AOVs NAMES	
+	string $all_aovs_lists[];
+	int $id= 0;
+
+	for($i = 0;$i<size($tjh_Arnold_AOV_NAMES);$i++)
+	{
+		$all_aovs_lists[$id]= $tjh_Arnold_AOV_NAMES[$i];
+		$id++;
+	}	
+	for($i = 0;$i<size($tjh_all_custom_Aovs_NAMES);$i++)
+	{
+		$all_aovs_lists[$id]= $tjh_all_custom_Aovs_NAMES[$i];
+		$id++;
+	}
+	clear $tjh_Arnold_AOV_NAMES;
+	$tjh_Arnold_AOV_NAMES = $all_aovs_lists;
+
+	//print "$tjh_Arnold_AOV_NAMES = \n";
+	//print  $tjh_Arnold_AOV_NAMES;
+
+	//create all UI AOVs checkbox
+	for($i = 0; $i<size($tjh_Arnold_AOV_NAMES); $i++)
+	{
+		int $value = 0;
+		if($tjh_Arnold_AOV_Global_current_checkBox_selectionList[$i] >= 0) $value = $tjh_Arnold_AOV_Global_current_checkBox_selectionList[$i];
+
+		 if(!` checkBox -q -exists ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]) `)checkBox -bgc 0.2 0.3 0.2 -v $value -label $tjh_Arnold_AOV_NAMES[$i] -changeCommand "tjh_Arnold_AOV_creator__create_checkBox_changeCommand" ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]);
+
+	}
+
+	//change color for aiUtilityAOVs checkBox 
+	
+	for($i = 0; $i<size($tjh_arnold__aiUtilityAOVs); $i++)
+	{
+		
+		checkBox -e -bgc 0.2 0.2 0.3  ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_arnold__aiUtilityAOVs[$i]);
+	}
+
+
+	//change color for all custom AOVs checkBox 
+	
+	for($i = 0; $i<size($tjh_all_custom_Aovs_NAMES); $i++)
+	{
+		
+		checkBox -e -bgc 0.3 0.3 0.3  ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_all_custom_Aovs_NAMES[$i]);
+	}
+
+
+
+
+}
+
+
+
+
+global proc tjh_Arnold_AOV_creator__create_checkBox_changeCommand()
+{
+	//save current selection list
+	global int $tjh_Arnold_AOV_Global_current_checkBox_selectionList[];
+	clear $tjh_Arnold_AOV_Global_current_checkBox_selectionList;
+	global string $tjh_Arnold_AOV_NAMES[];
+	
+
+	string $currentRenderLayer = ` editRenderLayerGlobals -q -currentRenderLayer `;
+
+	string $all_AOVs[] = ` ls -type "aiAOV" `;
+	string $all_AOVs_NAMES[];
+
+	for($i =0 ;$i<size($all_AOVs);$i++)
+	{
+		 $all_AOVs_NAMES[$i] = ` getAttr ($all_AOVs[$i]+".name") `;	
+	}
+
+	for($n = 0; $n<size($all_AOVs_NAMES); $n++)
+	{
+		for($i = 0; $i<size($tjh_Arnold_AOV_NAMES); $i++)
+		{
+			$tjh_Arnold_AOV_Global_current_checkBox_selectionList[$i] = ` checkBox -q -v   ("tjh_Arnold_AOV_creator_checkBox_"+$tjh_Arnold_AOV_NAMES[$i]) `;
+			 
+			if(` objExists ($all_AOVs[$n]+".enabled")` && $all_AOVs_NAMES[$n]==$tjh_Arnold_AOV_NAMES[$i] ) 
+				setAttr   ($all_AOVs[$n]+".enabled")  $tjh_Arnold_AOV_Global_current_checkBox_selectionList[$i];
+			
+			//create render layer override for AOV pass Toggle
+			if($currentRenderLayer != "defaultRenderLayer" && ` objExists ($all_AOVs[$n]+".enabled")` ) 			
+				editRenderLayerAdjustment  ($all_AOVs[$n]+".enabled");
+		}
+	}
+
+	//updata UI for all checkbox.
+	tjh_Arnold_AOV_creator__GetCurrentPass;
+
+}
+
+
+global proc tjh_Arnold_AOV_creator__DisableAllPassOverrides()
+{
+	
+	
+	global string $tjh_Arnold_AOV_NAMES[];
+	
+
+	string $currentRenderLayer = ` editRenderLayerGlobals -q -currentRenderLayer `;
+
+	for($i = 0; $i<size($tjh_Arnold_AOV_NAMES); $i++)
+	{						
+		//create render layer override for AOV pass Toggle
+		if($currentRenderLayer != "defaultRenderLayer" && ` objExists ("aiAOV_"+$tjh_Arnold_AOV_NAMES[$i]+".enabled")` ) 			
+			editRenderLayerAdjustment -remove  ("aiAOV_"+$tjh_Arnold_AOV_NAMES[$i]+".enabled");
+	}
+}
+
+
+global proc tjh_Arnold_AOV_creator__setAllOn_checkBox(int $toggle)
+{
+	global string $tjh_Arnold_AOV_NAMES[];
+	string $layerName;
+	
+	if($toggle == 0 || $toggle ==1)//set all toggles on or off
+	{
+		for($layerName in $tjh_Arnold_AOV_NAMES)
+		{
+			checkBox -e -v $toggle  ("tjh_Arnold_AOV_creator_checkBox_"+$layerName);
+		}
+	}
+	
+	
+	if($toggle == 2)//reverse toggles
+	{
+		for($layerName in $tjh_Arnold_AOV_NAMES)
+		{
+			int $v = ` checkBox -q -v   ("tjh_Arnold_AOV_creator_checkBox_"+$layerName)`;
+			if($v==0)checkBox -e -v 1  ("tjh_Arnold_AOV_creator_checkBox_"+$layerName);
+			if($v==1)checkBox -e -v 0  ("tjh_Arnold_AOV_creator_checkBox_"+$layerName);
+
+		}
+	}
+		
+	
+	//tjh_Arnold_AOV_creator__create_checkBox_changeCommand;
+	//updata UI for all checkbox.
+	//tjh_Arnold_AOV_creator__GetCurrentPass;
+
+}
+
+
+
+
+
+///////////////////////////   main proc   /////////////////////////////////////
+
+global proc tjh_Arnold_AOV_creator__create_RenderLayers(string $action)
+
+// action: createSelected | deleteSelected | deleteALL |  createALL
+
+{
+	global string $tjh_Arnold_AOV_NAMES[];
+	global string $tjh_arnold__aiUtilityAOVs[];
+	
+
+	string $layerName;
+
+	python("import mtoa.aovs as aovs");
+
+	int $exrMergeAOVsToggle =0;
+	
+	if($action == "createSelected" || $action == "createALL") 
+		$exrMergeAOVsToggle =` checkBox -q -v  "tjh_Arnold_AOV_creator_checkBox_ExrPassMergeAOVsCheckBox" `;
+
+	
+	string $layerName;
+
+
+
+	//main for cycle process
+
+	for($layerName in $tjh_Arnold_AOV_NAMES)
+	{
+		//default shader method.$shaderMethod : default | aiUtility
+		//判断pass分层类型
+		string $shaderMethod = "default";
+		
+		
+		//特殊材质类型层
+		string $aiUtilityAOV="";
+		for($aiUtilityAOV  in $tjh_arnold__aiUtilityAOVs)
+		{
+			if( $layerName == $aiUtilityAOV )
+			{
+				//aiUtility shader 类型层
+				$shaderMethod = "aiUtility";
+
+				//croptomatte shader 类型层
+				if( $layerName == "crypto_asset" || $layerName == "crypto_material" || $layerName == "crypto_object" )		
+				{			
+					$shaderMethod = "cryptomatte";
+				}
+			
+			}
+
+			
+		}		
+
+
+
+		//默认材质渲染层类创建方法 begin
+		if($shaderMethod == "default") //built in type pass
+		{		
+			if( $action == "createSelected") 
+			{	
+				int $toggle =` checkBox -q -v  ("tjh_Arnold_AOV_creator_checkBox_"+$layerName) `;
+				if($toggle == 1) 
+				{
+					if(!` objExists ("aiAOV_"+$layerName) `)
+					python("aovs.AOVInterface().addAOV(\""+$layerName+"\")");
+
+					//if shadow pass be create ,build the aiShadowCatcher node for aiAOV node.
+					/*
+					if($layerName == "shadow" || $layerName == "shadow_diff" || $layerName == "shadow_mask" || $layerName == "shadow_matte")
+					{
+							
+						string $aiShadowCatcher_node;
+						if(!` objExists "tjh_Arnold_AOV_creator_aiShadowCatcher" `)
+						{
+							$aiShadowCatcher_node = ` createNode  -n "tjh_Arnold_AOV_creator_aiShadowCatcher" "aiShadowCatcher" `;
+						}
+						connectAttr -force ($aiShadowCatcher_node+".outColor") ("aiAOV_"+$layerName+".defaultValue");
+
+					}
+					*/
+
+
+				}
+			}
+
+			if( $action == "createALL") 
+			{	
+				if(!` objExists ("aiAOV_"+$layerName) `)
+				python("aovs.AOVInterface().addAOV(\""+$layerName+"\")");
+			}
+		}//默认材质渲染层 end
+		
+
+		//自定义材质crypto渲染层类创建方法 begin
+		if($shaderMethod == "cryptomatte") //user define type pass
+		{				 
+			
+			if( $action == "createSelected") 
+			{	
+				int $toggle =` checkBox -q -v  ("tjh_Arnold_AOV_creator_checkBox_"+$layerName) `;
+
+
+				if($toggle == 1)
+				{					
+
+					string $node ;
+
+					if(!` objExists "_aov_cryptomatte" `)
+					 {
+						$node = ` createNode  -n "_aov_cryptomatte" "cryptomatte" `;
+						//打开色彩预览开关，nuke合成时用于色彩预览，默认maya是关闭的
+						setAttr "_aov_cryptomatte.previewInExr" 1;
+						
+						print ("_aov_cryptomatte" +"\n");
+					 }else{
+					 
+						$node = "_aov_cryptomatte";
+						//打开色彩预览开关，nuke合成时用于色彩预览
+						setAttr "_aov_cryptomatte.previewInExr" 1;
+					 }
+					 
+					
+					
+
+					if(!` objExists ("aiAOV_"+$layerName) `)
+					 {
+						python("aovs.AOVInterface().addAOV(\""+$layerName+"\")");
+						//tjh_waitTime 1;
+					 }
+					
+					connectAttr -force ($node+".outColor") ("aiAOV_"+$layerName+".defaultValue");
+
+					
+					
+						
+				}// checkbox  test  if($toggle == 1)
+
+
+			}//if( $action == "createSelected") 
+
+
+
+			if( $action == "createALL") 
+			{					
+				python("aovs.AOVInterface().addAOV(\""+$layerName+"\")");
+			}
+
+
+		}//自定义crypto材质渲染层 end
+
+
+
+		//自定义材质aiUtility渲染层类创建方法 begin
+		if($shaderMethod == "aiUtility") //user define type pass
+		{				 
+			
+			if( $action == "createSelected") 
+			{	
+				int $toggle =` checkBox -q -v  ("tjh_Arnold_AOV_creator_checkBox_"+$layerName) `;
+
+
+				if($toggle == 1)
+				{					
+
+					string $node ;
+
+					if(!` objExists ("aiUtility_"+$layerName) `)
+					 {
+						$node = ` createNode  -n ("aiUtility_"+$layerName) "aiUtility" `;
+						
+						print ("aiUtility_"+$layerName +"\n");
+					 }else{
+					 
+						$node = "aiUtility_"+$layerName;
+					 }
+					 
+					
+					//string $node = ` createNode  "aiUtility" `;
+
+
+					if(!` objExists ("aiAOV_"+$layerName) `)
+					 {
+						python("aovs.AOVInterface().addAOV(\""+$layerName+"\")");
+						//tjh_waitTime 1;
+					 }
+					
+					connectAttr -force ($node+".outColor") ("aiAOV_"+$layerName+".defaultValue");
+
+					
+					if($layerName == "UV_Coords")
+					{
+						setAttr ($node+".shadeMode") 2;
+						setAttr ($node+".colorMode") 5;
+						setAttr ($node+".overlayMode") 0;
+
+						setAttr ("aiAOV_"+$layerName+".type") 5;					
+				
+					}
+
+					if($layerName == "Triangle_Wireframe")
+					{
+						setAttr ($node+".shadeMode") 2;
+						setAttr ($node+".colorMode") 13;	
+						setAttr ($node+".overlayMode") 0;
+
+						setAttr ("aiAOV_"+$layerName+".type") 5;
+						
+					}
+
+					if($layerName == "Polygon_Wireframe")
+					{
+						setAttr ($node+".shadeMode") 2;
+						setAttr ($node+".colorMode") 14;	
+						setAttr ($node+".overlayMode") 0;
+
+						setAttr ("aiAOV_"+$layerName+".type") 5;
+						
+					}
+
+					if($layerName == "object_id")
+					{
+						setAttr ($node+".shadeMode") 2;
+						setAttr ($node+".colorMode") 0;	
+						setAttr ($node+".overlayMode") 0;
+
+						setAttr ("aiAOV_"+$layerName+".type") 5;
+
+						string $aiUserDataFloat;
+						if(!` objExists "tjh_Arnold_AOV_creator__aiUserDataFloat_objectID" `)
+						 { 
+							$aiUserDataFloat = ` createNode  -n "tjh_Arnold_AOV_creator__aiUserDataFloat_objectID" "aiUserDataFloat" `;
+							//定义arnold 内部变量名，材质节点直接输入变量名objectID，每个物体shape节点单独添加mtoa_constant_objectID属性，格式必须为.  'mtoa_constant_<attribute-name>' 
+							setAttr -type "string" tjh_Arnold_AOV_creator__aiUserDataFloat_objectID.floatAttrName "objectID";
+							
+							//;
+						 }
+
+						connectAttr -f ($aiUserDataFloat+".outValue") ($node+".colorR");
+						connectAttr -f ($aiUserDataFloat+".outValue") ($node+".colorG");
+						connectAttr -f ($aiUserDataFloat+".outValue") ($node+".colorB");
+
+						//connectAttr -f tjh_Arnold_AOV_creator__aiUserDataFloat_objectID.outValue aiUtility_object_id.colorR;
+						//connectAttr -f tjh_Arnold_AOV_creator__aiUserDataFloat_objectID.outValue aiUtility_object_id.colorG;
+						//connectAttr -f tjh_Arnold_AOV_creator__aiUserDataFloat_objectID.outValue aiUtility_object_id.colorB;
+
+						
+					}
+					
+					
+
+					if($layerName == "TriFace_Id")
+					{
+						setAttr ($node+".shadeMode") 2;
+						setAttr ($node+".colorMode") 11;	
+						setAttr ($node+".overlayMode") 0;
+
+						setAttr ("aiAOV_"+$layerName+".type") 5;
+						
+					}
+
+					if($layerName == "face_id")
+					{
+						setAttr ($node+".shadeMode") 2;
+						setAttr ($node+".colorMode") 12;	
+						setAttr ($node+".overlayMode") 0;
+
+						setAttr ("aiAOV_"+$layerName+".type") 5;
+						
+					}
+
+					if($layerName == "AO_OCC")
+					{
+						setAttr ($node+".shadeMode") 3;
+						setAttr ($node+".colorMode") 0;	
+						setAttr ($node+".overlayMode") 0;
+						
+						setAttr ("aiAOV_"+$layerName+".type") 5;
+					}
+
+
+					if($layerName == "Rim")//边缘光反向-需在nuke中反转得到边缘光效果。
+					{
+						setAttr ($node+".shadeMode") 2;
+						setAttr ($node+".colorMode") 0;	
+						setAttr ($node+".overlayMode") 0;
+						
+						setAttr ("aiAOV_"+$layerName+".type") 5;
+
+						string $samplerInfoNode;
+						string $rampNode;
+
+						if(!` objExists "tjh_rim_samplerInfoNode" `)
+						{
+							$samplerInfoNode = ` createNode "samplerInfo" -name "tjh_rim_samplerInfoNode" `;
+						}
+						if(!` objExists "tjh_rim_rampNode" `)
+						{
+							$rampNode = ` createNode "ramp" -name "tjh_rim_rampNode" `; 
+							
+						}
+
+						connectAttr -f "tjh_rim_samplerInfoNode.facingRatio" "tjh_rim_rampNode.uCoord";
+						connectAttr -f "tjh_rim_samplerInfoNode.facingRatio" "tjh_rim_rampNode.vCoord";
+
+						setAttr ($rampNode+".colorEntryList[0].color") -type double3 1 1 1 ;
+						setAttr ($rampNode+".colorEntryList[1].color") -type double3 0 0 0 ;
+						setAttr ($rampNode+".colorEntryList[0].position") 0;
+						setAttr ($rampNode+".colorEntryList[1].position") 1;
+						setAttr ($rampNode+".interpolation") 6;
+
+						connectAttr -f ($rampNode+".outColor") ($node+".color");
+					}
+
+					if($layerName == "Mat_id")//材质id。
+					{
+						//setAttr ($node+".shadeMode") 0;
+						//setAttr ($node+".colorMode") 0;	
+						//setAttr ($node+".overlayMode") 0;
+						
+						setAttr ("aiAOV_"+$layerName+".type") 5;
+					}
+					
+
+						
+				}// checkbox  test  if($toggle == 1)
+
+
+			}//if( $action == "createSelected") 
+
+
+
+			if( $action == "createALL") 
+			{					
+				python("aovs.AOVInterface().addAOV(\""+$layerName+"\")");
+			}
+
+
+		}//自定义材质渲染层 end
+
+
+
+		if( $action == "deleteSelected") 
+		{	
+			int $toggle =` checkBox -q -v  ("tjh_Arnold_AOV_creator_checkBox_"+$layerName) `;
+			if($toggle == 1) python("aovs.AOVInterface().removeAOV(\""+$layerName+"\")");
+		}
+
+
+		if( $action == "deleteALL") 
+		{	
+			
+			python("aovs.AOVInterface().removeAOV(\""+$layerName+"\")");
+
+			delete ` ls  "*aiUtility_*" `;
+			//delete ` ls -type "aiUtility" -type "aiAOVDriver" -type "aiAOVFilter"`;
+			
+		}
+
+
+		//修改exr文件 pass 合并方式
+		
+		if(` objExists ("aiAOV_"+$layerName) ` && $action != "deleteALL"  && $action != "deleteSelected")
+		{
+			string $drivers[] = ` listConnections -d off -s on -type "aiAOVDriver" ("aiAOV_"+$layerName) `;
+			string $dr;
+			for($dr in $drivers)
+			{
+				setAttr ($dr+".mergeAOVs") $exrMergeAOVsToggle;
+			}
+		}
+
+
+
+	}//for end
+
+
+	//updata UI for all checkbox.
+	tjh_Arnold_AOV_creator__GetCurrentPass;
+
+}//proc end
+
+//check aiAOV type exist
+//0:not exist     1:exist
+global proc int tjh_aiAOV_pass_Exists(string $renderPassName)//$renderPassName : beauty ID P N Z coat .... 
+{
+	string $all_aiAovs[] = `  ls -type "aiAOV" `;
+	int $result = 0;//not exist
+	string $name= "";
+	
+	for($sel in $all_aiAovs)
+	{
+		 $name=` getAttr ($sel+".name")`;
+		 if($name == $renderPassName){$result += 1;break;}
+	}
+return $result;
+}
+
+
+global proc tjh_Arnold_AOV_creator__Create_ObjectId_Set_For_Selected(string $method,string $action) // all_Same_for_selected | seperate_for_selected
+{
+	//old method:
+	/*
+	string $createSetResult = ` sets -name "tjh_Arnold_AOV_creator__objectId_set" `;
+	addAttr -ln "aiUserOptions" -nn "Ai User Options" -dt "string"  $createSetResult;
+
+	setAttr -e -keyable true ($createSetResult+".aiUserOptions");
+
+	string $id = ` intSliderGrp -q -v  tjh_Arnold_AOV_creator__intSliderGrp__objectIdSets `;
+	setAttr -type "string" ($createSetResult+".aiUserOptions") ("id "+$id);
+
+	*/
+	/*
+	if($method=="I" )
+	{
+		if(!` tjh_aiAOV_pass_Exists "ID" ` && $method=="I" )
+	
+			python("aovs.AOVInterface().addAOV(\"ID\")");
+	
+	}
+
+	if($method=="II" )
+	{
+		if(!` tjh_aiAOV_pass_Exists "object_id" ` && $method=="II" )
+	
+			//python("aovs.AOVInterface().addAOV(\"ID\")");
+
+	
+	}
+	*/
+
+	//new method: use arnold  aiUserDataFloat shader
+
+	string $selects[] = ` ls -dag -type "mesh" -sl `;
+	string $sel;
+	
+	
+	if($method=="I" )
+	{
+		if($action == "1" || $action == "2" || $action == "3"|| $action == "4"|| $action == "5"|| $action == "6"|| $action == "7"|| $action == "8"|| $action == "9"|| $action == "10"|| $action == "11"|| $action == "12"|| $action == "13"|| $action == "14"|| $action == "15"|| $action == "16")
+		{ 
+			for($sel in $selects)
+			{
+				
+				if(!` objExists ($sel+".aiUserOptions") `)
+				{
+					//addAttr -ln "aiUserOptions"  -at string  -dv "" $sel;
+					//setAttr -e -keyable true  ($sel+".aiUserOptions");
+				}else{setAttr  -type "string" ($sel+".aiUserOptions") ("id "+ $action) ;}
+			
+			}
+		}
+
+	}
+	
+	
+	if($method=="I" && $action == "all_Same_for_selected")
+	{
+		for($sel in $selects)
+		{
+			float $id = ` intSliderGrp -q -v  tjh_Arnold_AOV_creator__intSliderGrp__objectIdSets_I `;
+			if(!` objExists ($sel+".aiUserOptions") `)
+			{
+				//addAttr -ln "aiUserOptions"  -at string  -dv "" $sel;
+				//setAttr -e -keyable true  ($sel+".aiUserOptions");
+			}else{setAttr  -type "string" ($sel+".aiUserOptions") ("id "+$id) ;}
+		
+		}
+	}
+
+	if($method=="I" &&  $action == "seperate_for_selected")
+	{
+		float $id = 1;
+		for($sel in $selects)
+		{
+			
+			if(!` objExists ($sel+".aiUserOptions") `)
+			{
+				//addAttr -ln "mtoa_constant_objectID"  -at double  -dv $id $sel;
+				//setAttr -e -keyable true  ($sel+".mtoa_constant_objectID");
+				
+			}else{setAttr -type "string" ($sel+".aiUserOptions")  ("id "+$id) ;}
+
+			$id += 1 ;
+		
+		}
+	}
+
+	
+		
+	if($method=="II" )
+	{
+		if($action == "1" || $action == "2" || $action == "3"|| $action == "4"|| $action == "5"|| $action == "6"|| $action == "7"|| $action == "8"|| $action == "9"|| $action == "10"|| $action == "11"|| $action == "12"|| $action == "13"|| $action == "14"|| $action == "15"|| $action == "16")
+		{ 
+			for($sel in $selects)
+			{
+				
+				if(!` objExists ($sel+".mtoa_constant_objectID") `)
+				{
+					addAttr -ln "mtoa_constant_objectID"  -at double  -dv (0.01*(float($action))) $sel;
+					setAttr -e -keyable true  ($sel+".mtoa_constant_objectID");
+				}else{setAttr ($sel+".mtoa_constant_objectID") (0.01*(float($action))) ;}
+			
+			}
+		}
+
+	}
+	
+	
+	
+	if($method=="II" && $action == "all_Same_for_selected")
+	{
+		for($sel in $selects)
+		{
+			float $id = ` intSliderGrp -q -v  tjh_Arnold_AOV_creator__intSliderGrp__objectIdSets_II `;
+			if(!` objExists ($sel+".mtoa_constant_objectID") `)
+			{
+				addAttr -ln "mtoa_constant_objectID"  -at double  -dv (0.01*$id) $sel;
+				setAttr -e -keyable true  ($sel+".mtoa_constant_objectID");
+			}else{setAttr ($sel+".mtoa_constant_objectID") (0.01*$id) ;}
+		
+		}
+	}
+
+	if($method=="II" &&  $action == "seperate_for_selected")
+	{
+		float $id = 0.01;
+		for($sel in $selects)
+		{
+			
+			if(!` objExists ($sel+".mtoa_constant_objectID") `)
+			{
+				addAttr -ln "mtoa_constant_objectID"  -at double  -dv $id $sel;
+				setAttr -e -keyable true  ($sel+".mtoa_constant_objectID");
+				
+			}else{setAttr ($sel+".mtoa_constant_objectID") $id ;}
+
+			$id += 0.01;
+		
+		}
+	}
+	
+	
+
+}
+
+
+global proc tjh_Arnold_AOV_creator__Delete_All_ObjectId_Sets(string $method)
+{
+
+	//delete ` ls "*tjh_Arnold_AOV_creator__objectId_set*" `;
+	//delete ` ls "*tjh_Arnold_AOV_creator__aiUserDataFloat_objectID*" `;
+	
+	string $selects[] = ` ls -dag -type "mesh" -sl `;
+	string $sel;
+
+	if($method == "I")
+	{	
+		if(` tjh_aiAOV_pass_Exists ("ID") `)
+			python("aovs.AOVInterface().removeAOV(\"ID\")");
+	
+	}
+	if($method == "II")
+	{	
+		if(` tjh_aiAOV_pass_Exists ("object_id") `)
+			python("aovs.AOVInterface().removeAOV(\"object_id\")");
+
+		delete "*tjh_Arnold_AOV_creator__aiUserDataFloat_objectID*";
+	
+	}
+
+	if($method == "I")
+	{
+	
+		for($sel in $selects)
+		{
+			
+			if(!` objExists ($sel+".aiUserOptions") `)
+			{
+				//addAttr -ln "aiUserOptions"  -at string  -dv "" $sel;
+				//setAttr -e -keyable true  ($sel+".aiUserOptions");
+			}else{ setAttr  -type "string" ($sel+".aiUserOptions") "" ;}
+		
+		}
+	}
+
+	
+	
+	if($method == "II")
+	{
+
+		for($sel in $selects)
+		{
+			
+			if(!` objExists ($sel+".mtoa_constant_objectID") `)
+			{
+				//addAttr -ln "aiUserOptions"  -at string  -dv "" $sel;
+				//setAttr -e -keyable true  ($sel+".aiUserOptions");
+			}else{deleteAttr ($sel+".mtoa_constant_objectID")  ;}
+		
+		}
+
+	}
+
+
+}
+
+global proc tjh_Arnold_AOV_creator__add__customAov(string  $aov_pass) // 
+{
+	if(!` tjh_aiAOV_pass_Exists $aov_pass `)
+		python("aovs.AOVInterface().addAOV(\""+$aov_pass+"\")");	
+	tjh_Arnold_AOV_creator__GetCurrentPass;
+}
+
+global proc tjh_Arnold_AOV_creator__remove__customAov(string  $aov_pass) // 
+{
+	if(` tjh_aiAOV_pass_Exists $aov_pass `)
+		python("aovs.AOVInterface().removeAOV(\""+$aov_pass+"\")");	
+	tjh_Arnold_AOV_creator__GetCurrentPass;
+}
+
+
+global proc tjh_Arnold_AOV_creator__add_Mat_id_customAov(string  $mat_aov_id) // 
+{
+	if(!` tjh_aiAOV_pass_Exists ("Mat_id_"+$mat_aov_id) `)
+		python("aovs.AOVInterface().addAOV(\""+("Mat_id_"+$mat_aov_id)+"\")");
+
+	textField -e -text ("Mat_id_"+$mat_aov_id) tjh_Arnold_AOV_creator__customAov_Mat_id_textField;
+}
+
+
+global proc tjh_Arnold_AOV_creator__Delete_All_Mat_Id_Sets()
+{
+	string $mat_id_AOV_name  = ` textField -q -text tjh_Arnold_AOV_creator__customAov_Mat_id_textField `;
+	string $node ;	
+
+	string $selects[] = ` ls  -sl `;
+	int $id = ` intSliderGrp -q -v  tjh_Arnold_AOV_creator__intSliderGrp__MaterialIdSets `;
+	
+	//remove all AOV pass
+	for($aovId = 0 ;$aovId<8; $aovId++)
+	{
+		if(` tjh_aiAOV_pass_Exists ("Mat_id_0"+($aovId+1)) `)
+			python("aovs.AOVInterface().removeAOV(\""+("Mat_id_0"+($aovId+1))+"\")");
+	
+	}
+		if(` tjh_aiAOV_pass_Exists $mat_id_AOV_name `)
+			python("aovs.AOVInterface().removeAOV(\""+$mat_id_AOV_name+"\")");
+	
+	
+	for($i = 0 ;$i<size($selects); $i++)
+	{
+	
+		//if the shader is arnold shader ,use the default AOVs attr for pass
+		if(` objExists ($selects[$i]+".aovId1" ) ` )
+		{
+			
+			for($aovId = 0 ;$aovId<8; $aovId++)
+			{
+				setAttr -type "string" ($selects[$i]+".aovId"+($aovId+1)) "";						
+				setAttr ($selects[$i]+".id"+($aovId+1)) -type double3 0 0 0 ;
+			}			
+			
+			
+		}else{	//for maya other default shader 		
+		
+			delete ` ls "*tjh_aiUtility_Mat_id_*" `;
+
+		}//for maya default mat shaders 
+	}//main for end
+	
+	
+}
+
+
+
+global proc tjh_Arnold_AOV_creator__Create_Mat_Id_Set_For_Selected(string $method ,int $mat_id_R,int $mat_id_G,int $mat_id_B) // all_Same_for_selected | seperate_for_selected
+{
+	string $mat_id_AOV_name  = ` textField -q -text tjh_Arnold_AOV_creator__customAov_Mat_id_textField `;
+	string $node ;	
+
+	string $selects[] = ` ls  -sl `;
+	int $id = ` intSliderGrp -q -v  tjh_Arnold_AOV_creator__intSliderGrp__MaterialIdSets `;
+	
+	//create AOV pass
+	if(!` tjh_aiAOV_pass_Exists $mat_id_AOV_name `)
+			python("aovs.AOVInterface().addAOV(\""+$mat_id_AOV_name+"\")");
+	
+	
+	for($i = 0 ;$i<size($selects); $i++)
+	{
+	
+		//if the shader is arnold shader ,use the default AOVs attr for pass
+		if(` objExists ($selects[$i]+".aovId1" ) ` )
+		{
+			for($aovId = 0 ;$aovId<8; $aovId++)
+			{
+				if($mat_id_AOV_name=="Mat_id_0"+($aovId+1))
+				{
+					setAttr -type "string" ($selects[$i]+".aovId"+($aovId+1)) $mat_id_AOV_name;
+				}
+
+			
+				if($mat_id_AOV_name=="Mat_id_0"+($aovId+1) && $method == "quick_Same_for_selected" ) 
+				{			
+					setAttr ($selects[$i]+".id"+($aovId+1)) -type double3 (0.01*(float($mat_id_R)))  (0.01*(float($mat_id_G)))  (0.01*(float($mat_id_B))) ;
+				}
+
+				if($mat_id_AOV_name=="Mat_id_0"+($aovId+1) && $method == "seperate_for_selected" ) 
+				{			
+					setAttr ($selects[$i]+".id"+($aovId+1)) -type double3 (0.01*(float($id)))  (0.01*(float($id)))  (0.01*(float($id))) ;
+					$id++;
+				}
+
+				if($mat_id_AOV_name=="Mat_id_0"+($aovId+1) && $method == "all_Same_for_selected" ) 
+				{			
+					setAttr ($selects[$i]+".id"+($aovId+1)) -type double3 (0.01*(float($id)))  (0.01*(float($id)))  (0.01*(float($id))) ;
+				}
+
+			}
+
+			
+		}
+
+
+		else{	//for maya other default shader 		
+		
+
+				if(` objExists ($selects[$i]+".outColor" ) `)
+				//if(` objExists ($selects[0]+".outColor" ) `)
+				{
+
+					//use the same shader
+					//string $materialShaderName = $selects[$i];
+					string $materialShaderName = $selects[0];
+
+					string $shadingEngine[] = ` listConnections -d 1 -s 0 -type "shadingEngine" ($selects[$i]+".outColor" ) `;
+					//string $shadingEngine[] = ` listConnections -d 1 -s 0 -type "shadingEngine" ($selects[0]+".outColor" ) `;
+					//print ($shadingEngine[0]+"\n");
+
+
+
+					if(size($shadingEngine)== 1)//exclude the initial shader lambert initial shaderEngines
+					{
+						string $node;
+						
+							$node = ` createNode  -n ("tjh_aiUtility_Mat_id_"+$materialShaderName) "aiUtility" `;
+							
+							//print ("aiUtility_Mat_id_"+$materialShaderName +"\n");
+						 
+
+						setAttr ($node+".shadeMode") 2;
+						setAttr ($node+".colorMode") 0;
+						setAttr ($node+".overlayMode") 0;
+
+						
+						
+						//id 色彩算法 核心
+						//float $rgb[] = tjh_colorId_split(60, $id);
+						float $rgb[];
+						if($method == "quick_Same_for_selected")//for quick id   and   red green blue buttons 
+						 {
+							$rgb={ (0.01*$mat_id_R) ,(0.01*$mat_id_G), (0.01*$mat_id_B) };
+						 }
+
+						 if($method == "all_Same_for_selected")
+						 {
+							$rgb={ (0.01*$id) ,(0.01*$id), (0.01*$id) };
+						 }
+
+						 if($method == "seperate_for_selected")
+						 {
+							$id += 1;
+							$rgb={ (0.01*$id) ,(0.01*$id), (0.01*$id) };
+						 } 
+
+
+						setAttr ($node+".color") -type double3 $rgb[0] $rgb[1] $rgb[2]  ;
+
+						int $size = ` getAttr  -size  ($shadingEngine[0]+".aiCustomAOVs") `;
+						
+						for($k=0 ; $k<$size; $k++)
+						{			
+							
+							string $AOV_name = ` getAttr ($shadingEngine[0]+".aiCustomAOVs["+$k+"].aovName") `;
+							
+							
+							if($AOV_name == $mat_id_AOV_name)
+							{
+								
+								string $aiUtileityNode[] =` listConnections -s on ($shadingEngine[0]+".aiCustomAOVs["+$k+"].aovInput") `;
+								if(size($aiUtileityNode[0])>0 )
+								{
+									disconnectAttr ($aiUtileityNode[0]+".outColor") ($shadingEngine[0]+".aiCustomAOVs["+$k+"].aovInput");		
+								}
+								connectAttr -force ($node+".outColor") ($shadingEngine[0]+".aiCustomAOVs["+$k+"].aovInput");
+							}
+
+						}
+					}
+
+
+				}else{warning "please select a material shader node first !";}
+
+			}//for maya default mat shaders 
+	}//main for end
+}
+
+
+
+
+global proc float[]  tjh_colorId_split(float $colorRGB_SplitNum, float $currnetID)
+{
+	if($colorRGB_SplitNum <= 0) $colorRGB_SplitNum = 6.0;
+	//将色轮分割为60份
+	float $colorUnit = 6.0/$colorRGB_SplitNum;
+	if($currnetID >  $colorRGB_SplitNum) $currnetID = $colorRGB_SplitNum;
+		
+	float $color = $currnetID*$colorUnit;
+	print ("$color = "+$color+"\n");
+
+	float $rgb[];
+
+	if($color >=0 && $color <1)
+	{
+		$rgb[0] = 1;
+		$rgb[1] = $color;
+		$rgb[2] = 0;
+	}
+
+	if($color >=1 && $color <2)
+	{
+		$rgb[0] = 1-($color-1);
+		$rgb[1] = 1;
+		$rgb[2] = 0;
+	}
+
+	if($color >=2 && $color <3)
+	{
+		$rgb[0] = 0;
+		$rgb[1] = 1;
+		$rgb[2] = $color-2;
+	}
+
+	if($color >=3 && $color <4)
+	{
+		$rgb[0] = 0;
+		$rgb[1] = 1-($color-3);
+		$rgb[2] = 1;
+	}
+
+	if($color >=4 && $color <5)
+	{
+		$rgb[0] = $color-4;
+		$rgb[1] = 0;
+		$rgb[2] = 1;
+	}
+
+
+	if($color >=5 && $color <6)
+	{
+		$rgb[0] = 1;
+		$rgb[1] = 0;
+		$rgb[2] = 1-($color-5);
+	}
+print $rgb;
+
+return $rgb;
+}
+
+
+
+
+
+
+
+
+global proc tjh_waitTime(float $Seconds)
+{
+    float $startTime = ` timerX `;
+    float $elaspedTime = 0;
+    while ($elaspedTime < $Seconds ) {  $elaspedTime = `timerX -startTime $startTime`;  }
+    print ("Elapsed Time: "+$elaspedTime+"\n");
+}
+
+global proc tjh_Arnold_AOV_creator__reset_presets()
+{
+	global string  $tjh_Arnold_AOV_Preset_datas[];$tjh_Arnold_AOV_Preset_datas={"","<preset>","<built in>","1","1","1","1","1","1","1","0","0","0","0","0","0","0","0","1","1","1","1","0","0","0","0","0","0","0","0","0","0","1","1","1","1","0","0","0","0","0","0","0","0","0","<preset>","ai Hair","0","0","0","0","0","0","0","1","1","0","1","0","1","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","<preset>","ai Shadow Catcher","0","0","0","0","0","0","0","0","0","0","0","0","1","0","0","0","0","0","0","1","0","0","1","1","1","1","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","<preset>","ai Skin","0","0","0","0","0","0","0","0","0","1","0","0","0","0","1","0","0","0","0","0","0","0","0","0","0","0","1","1","1","0","0","0","0","0","0","0","0","0","0","0","0","0","<preset>","ai Standard","0","0","0","0","0","0","0","1","1","1","0","1","1","1","1","0","0","0","0","1","1","1","0","0","0","0","0","0","1","0","0","0","0","0","0","0","0","0","0","0","0","0","<preset>","bugStory_arnold_pass","0","0","1","0","0","1","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","1","1","1","1","0","0","0","0","0","0","0","0","0","0","0","0","0","0","1","0","<preset>","bugStory_arnold_pass2","0","0","1","0","0","1","0","0","1","0","0","0","0","0","0","0","0","0","0","0","0","0","1","1","1","1","0","0","0","0","0","0","0","0","0","0","0","0","0","0","1","0","<preset>","arnold_5_default","0","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","0","0","0","0","1","1","0","0","0","0","1","1","1","1","1","0","0","0","1","1","1","1","0","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","1","0","0","0","0","0","0","0","0","0","<preset>","Composing the Beauty AOV 01","0","0","0","0","0","0","0","0","0","1","0","0","0","0","0","0","0","0","0","0","0","0","1","0","0","0","0","1","0","0","0","0","0","1","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","<preset>","Composing the Beauty AOV 02","0","0","0","0","0","0","0","0","0","1","1","0","0","0","0","0","0","0","1","0","0","0","0","0","0","0","0","1","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","1","0","0","0","1","0","0","0","1","0","0","0","1","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","<preset>","Composing the Beauty AOV 03","0","0","0","0","0","0","0","0","0","1","1","0","0","0","0","0","0","0","0","0","1","1","0","0","0","0","0","1","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","1","1","1","0","0","0","1","0","0","0","1","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","","","<preset>","yyy","0","0","0","0","0","1","0","1","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0"};		
+		
+	//updata for menuItems preset
+	tjh_Arnold_AOV_Preset__saveDataToPresetFile_And_updateUI;
+
+
+	//update the preset UI
+
+	tjh_Arnold_AOV_preset;
+
+}
+
+
+tjh_Arnold_AOV_creator;

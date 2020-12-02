@@ -70,3 +70,11 @@
 2020-11-25 16:26:25: LOG: [WARNING] Malformed Mesh - The plug-in has detected mesh nodes containing polygons with overlapping vertices.
 	The following objects have been automatically cleaned up:    踏板
 
+2020-12-01 10:42:39: LOG: Import: W:/Bob_IP/07_Reference/肯德基美团素材/美团袋鼠元素参考/袋鼠骑手3D/袋鼠 骑手 摩托车.fbx
+2020-12-01 10:42:42: LOG: [WARNING] Malformed Mesh - The plug-in has detected mesh nodes containing polygons with overlapping vertices.
+	The following objects have been automatically cleaned up:    踏板
+
+2020-12-01 11:55:54: LOG: Import: E:/LocalProjects/Test/haibao/out.fbx
+2020-12-01 11:56:38: LOG: Import: E:/LocalProjects/Test/haibao/out.fbx
+2020-12-01 12:02:44: LOG: Import: W:/Bob_IP/00_Pipeline/CustomModules/Maya/scripts/lookdev_kit/sourceimages/ldv_fcs_font.fbx
+2020-12-01 12:18:57: LOG: Import: E:/LocalProjects/Test/haibao/out.fbx

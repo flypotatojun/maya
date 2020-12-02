@@ -21,7 +21,7 @@ windowPref -topLeftCorner 346 640 -widthHeight 450 320 -maximized false -parentM
 windowPref -topLeftCorner 196 1306 -widthHeight 359 747 -maximized false -parentMain true LdvUI;
 windowPref -topLeftCorner 346 640 -widthHeight 640 480 -maximized false -parentMain true tmpwin;
 windowPref -topLeftCorner 339 2147 -widthHeight 1004 671 -maximized false -parentMain true PreferencesWindow;
-windowPref -topLeftCorner 411 2165 -widthHeight 998 537 -maximized false -parentMain true shelfEditor;
+windowPref -topLeftCorner 367 749 -widthHeight 998 537 -maximized false -parentMain true shelfEditor;
 windowPref -topLeftCorner 225 990 -widthHeight 332 704 -maximized false -parentMain true batchUI;
 windowPref -topLeftCorner 346 640 -widthHeight 302 694 -maximized false -parentMain true shdUI;
 windowPref -topLeftCorner 190 884 -widthHeight 450 411 -maximized false -parentMain true pluginManagerWindow;
@@ -44,7 +44,7 @@ windowPref -topLeftCorner 392 485 -widthHeight 682 508 -maximized false -parentM
 windowPref -topLeftCorner 346 640 -widthHeight 300 70 -maximized false -parentMain true aiswindow;
 windowPref -topLeftCorner 537 1138 -widthHeight 416 281 -maximized false -parentMain true panelArrangementWin;
 windowPref -topLeftCorner 315 1268 -widthHeight 520 620 -maximized false -parentMain true connectWindow;
-windowPref -topLeftCorner 638 1012 -widthHeight 466 184 -maximized false -parentMain true renameCtrl;
+windowPref -topLeftCorner 564 2639 -widthHeight 278 100 -maximized false -parentMain true renameCtrl;
 windowPref -topLeftCorner 346 640 -widthHeight 520 620 -maximized false -parentMain true connectWindowModal;
 windowPref -topLeftCorner 346 640 -widthHeight 357 275 -maximized false -parentMain true namespaceEditor;
 windowPref -topLeftCorner 665 2160 -widthHeight 433 102 -maximized false -parentMain true AutoShader;
@@ -53,3 +53,7 @@ windowPref -topLeftCorner 150 650 -widthHeight 355 350 -maximized false -parentM
 windowPref -topLeftCorner 346 640 -widthHeight 278 93 -maximized false -parentMain true arnold_filter_list_win;
 windowPref -topLeftCorner 401 774 -widthHeight 500 500 -maximized false -parentMain true FbxWarningWindow;
 windowPref -topLeftCorner 42 1962 -widthHeight 554 780 -maximized false -parentMain true DeadlineSubmitWindow;
+windowPref -topLeftCorner 121 1147 -widthHeight 602 763 -maximized false -parentMain true tjh_lost_textures_finderUI;
+windowPref -topLeftCorner 346 640 -widthHeight 359 280 -maximized false -parentMain true tjh_scene_package_tool_window;
+windowPref -topLeftCorner 346 640 -widthHeight 266 257 -maximized false -parentMain true arnold_attribute_win;
+windowPref -topLeftCorner 346 640 -widthHeight 330 623 -maximized false -parentMain true tjh_Arnold_AOV_creator_window;
