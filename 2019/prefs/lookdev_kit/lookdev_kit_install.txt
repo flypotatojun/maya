@@ -1,0 +1,73 @@
+This is my first Python project. Expect bugs and crashes. If something doesn't work well please contact me on ArtStation. 
+
+Bugs and crashes will be fixed in time and the project itself will be updated. 
+
+Final goal of this is to write it in Python 3 for all render engines and all DCCs. But it will take a while...
+
+Also, it is a free tool, use it as is. I hope you will find it usefull. 
+
+
+
+REQUIREMENTS:
+
+First release will only work on Microsoft Windows (Linux support is planned).
+
+I have tested Lookdev Kit 2.0 on Maya 2020 and MtoA 4+. Also, couple of my friends tried it on Maya 2018 and 2019. 
+
+All newer Arnold version should be compatible.
+
+It doesn't work on Maya 2017. So, you need Maya 2018 or higher. 
+
+
+
+INSTALATION:
+
+- copy entire lookdev_kit folder from .zip to your MyDocuments Maya scripts folder. It is usually here:
+
+C:\Users\<user_name>\Documents\maya\scripts
+
+
+- from folder lookdev_kit\shelf copy the shelf_dk_mtoa_lookdev.mel and paste it here:
+
+Documents\maya\<maya_version>\prefs\shelves
+
+- run Maya and you will have a shelf with LDV kit button
+
+OR
+
+If you don't want my shelf you can create button by yourself:
+
+- open script editor and in PYTHON tab paste following code:
+
+
+from lookdev_kit import ldv_kit
+
+reload(ldv_kit)
+ldv_kit.buildUI()
+
+
+You can always select that code in script editor and middle-click-drag it to your shelf to create a button, so you can call it when needed.
+
+
+DOCUMENTATION PAGE:
+
+https://dusankovic.artstation.com/pages/lookdev-kit
+
+
+
+OTHER:
+
+You can find features video here:
+
+https://youtu.be/alN8fmgyapE
+
+If some stuff doesn't look exactly like in video, I probably changed some things.
+
+Also, you can check out my web page for future updates and blog posts about Lookdev Kit.
+
+HDR images taken from hdrihaven.com
+
+
+Created by Dusan Kovic - dusankovic.com
+
+Thanks to Aleksandar Kocic (aleksandarkocic.com) for some tips to make this more usable. Also thanks to all my friends who "beta tested" Lookdev kit.

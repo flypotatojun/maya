@@ -1,0 +1,278 @@
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+//coded by Jinghai Tian on 15th Aug 2017
+//this tool to copy the same sequence frame,support for multi layer.
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+//Main UI
+global proc tjh_copy_same_frame()
+{
+	if(` window -exists tjh_copy_same_frame_window `)
+		deleteUI tjh_copy_same_frame_window;
+		if(` windowPref -exists tjh_copy_same_frame_window `)
+		windowPref -remove tjh_copy_same_frame_window;
+
+		window -t "tjh_copy_same_frame"
+		-wh 400 150
+		-mxb 0
+		-resizeToFitChildren on
+		-sizeable 1
+		tjh_copy_same_frame_window;
+
+		columnLayout -columnAlign "center" -adjustableColumn true;
+			text -l "";
+			text -w 400 -l "Copy Frame Tool v1.0     in 2017"; 
+			text -l "";
+			rowLayout -numberOfColumns 3
+    			-columnWidth3 100 200 100
+    			-adjustableColumn 2
+   			 -columnAlign  1 "right"
+    			 -columnAttach 1 "both"  0
+   			 -columnAttach 2 "both"  0
+			 -columnAttach 3 "both"  0
+    			  ;
+				text -w 100 -l "Sequence  Pic  Dir:";
+				textField -w 200 -text "c:/temp/pic/" -cc "tjh_copy_same_frame_textField_PicPath__ChangedCommand" tjh_copy_same_frame_textField_PicPath;
+				button -l "Set Path..." -w 100  -c "tjh_copy_same_frame__setPath";
+				setParent..;
+
+			
+			rowLayout -numberOfColumns 5
+    			-columnWidth5 100 50 100 75 75
+    			-adjustableColumn 2			
+   			 -columnAlign  1 "right"
+    			 -columnAttach 1 "both"  0
+   			 -columnAttach 2 "both"  0
+			 -columnAttach 3 "both"  0
+    			  ;
+				text -w 100 -l "Copy Seed Frame:";
+				floatField -w 50 -value  1  tjh_copy_same_frame_floatField_CopySeedFrame;
+				text -w 100 -l "Frame Range:";
+				floatField -w 75 -value  1  tjh_copy_same_frame_floatField_startFrame;
+				floatField -w 75 -value  10  tjh_copy_same_frame_floatField_endFrame;
+								
+				setParent..;
+
+			rowLayout -numberOfColumns 3
+    			-columnWidth3 150 150 100
+    			-adjustableColumn 2
+   			 -columnAlign  1 "right"
+    			 -columnAttach 1 "both"  0
+   			 -columnAttach 2 "both"  0
+			 -columnAttach 3 "both"  0
+    			  ;
+				button -w 150 -l  "Copy Frame" -c "tjh_copy_same_frame__autoCopy \"copy\"";
+				button -w 150 -l  "Delete Frame" -c "tjh_copy_same_frame__autoCopy \"delete\"";
+				button -w 100 -l  "Cancel" -c "deleteUI tjh_copy_same_frame_window";
+				setParent..;
+
+			rowLayout -numberOfColumns 3
+    			-columnWidth3 100 200 100
+    			-adjustableColumn 2
+   			 -columnAlign  1 "right"
+    			 -columnAttach 1 "both"  0
+   			 -columnAttach 2 "both"  0
+			 -columnAttach 3 "both"  0
+    			  ;
+				text -w 100 -l "Rename Pic :";
+				textField -w 200 -text "newName" -cc "" tjh_copy_same_frame_textField_rename;
+				button -l "rename" -w 100  -c "tjh_copy_same_frame__autoCopy \"rename\"";
+				setParent..;
+
+
+
+	showWindow tjh_copy_same_frame_window;
+	 
+}
+
+global proc  tjh_copy_same_frame_textField_PicPath__ChangedCommand()
+{
+	string $path = ` textField -q -text  tjh_copy_same_frame_textField_PicPath `;
+	textField -e -text (fromNativePath($path)+"/")  tjh_copy_same_frame_textField_PicPath;
+
+}
+
+global proc  tjh_copy_same_frame__setPath()
+{
+	string $path = ` fileDialog `;
+
+	textField -e -text (dirname($path)+"/")  tjh_copy_same_frame_textField_PicPath;
+}
+
+
+// $framePathDir = "d:/images/SD_P136_SC03_Cut029/";  
+global proc tjh_copy_same_frame__autoCopy(string $action)//$action = "copy" or "delete" "rename"
+{	
+	
+	string $framePathDir = ` textField -q -text tjh_copy_same_frame_textField_PicPath `;
+	float $copySeedFrame = ` floatField -q -value   tjh_copy_same_frame_floatField_CopySeedFrame `;
+	float $startFrame = ` floatField -q -value   tjh_copy_same_frame_floatField_startFrame `;
+	float $endFrame = ` floatField -q -value   tjh_copy_same_frame_floatField_endFrame `;
+	string $rename = ` textField -q -text   tjh_copy_same_frame_textField_rename `;
+	print ("\n$rename = "+$rename+"\n");
+	
+	
+	//=================found the same image-names in the directory.=================
+	string $imageNames[];
+	int $imageNames_id = 0;
+	
+	//$framePathDir = "D:/tianjh_render/SD_P136_SC03_Cut029/bg/";
+	string $allImageNames[] = ` getFileList  -folder (fromNativePath($framePathDir)) `;		
+	//print $allImageNames;
+	//print (size($allImageNames)+"\n");
+	
+	
+	string $record_old_name = "";
+	string $str_name_tmp[];	
+
+	for($j=0;$j<size($allImageNames);$j++)
+	{			
+		tokenize $allImageNames[$j] "." $str_name_tmp;
+		//print ("\n"+$str_name_tmp[0]);	
+		string $img_name = "";	
+		
+		if(size($str_name_tmp)>=3)	
+		{	
+		    for($m = 0;$m<size($str_name_tmp)-2;$m++)
+		    {
+		        $img_name+=$str_name_tmp[$m];
+		    }
+		        		
+    		if($img_name != $record_old_name)
+    		{
+    			$imageNames[$imageNames_id]= (fromNativePath($framePathDir))+$allImageNames[$j];
+    			$imageNames_id++;
+    			$record_old_name = $img_name;
+    		}
+    		
+		}
+		clear $str_name_tmp;		
+	}
+
+	print $imageNames;	
+	
+    
+	//=================copy frames.=======================
+	
+	string $frameName = "";
+	
+	for($frameName in $imageNames)
+	{
+		string $str[]; 
+		tokenize $frameName "." $str;
+	    
+		if(size($str)>=3)
+		{
+			int $paddingSize = size( $str[size($str)-2] );
+			print ("\n$paddingSize = "+$paddingSize);
+			int $frameNum = $str[size($str)-2];		
+			
+			
+			//prefix fileName
+	    
+			string $prefixName = "";
+			for($n=0;$n<size($str)-2;$n++)
+			{
+				if($prefixName=="")//run only once
+				{
+					$prefixName += $str[$n];
+				}else{
+					$prefixName += "."+$str[$n];
+				};
+			}
+
+			//get rename Prefix
+
+			string $renamePrefix = ""; 
+			
+			for($n=0;$n<size($str)-2;$n++)
+			{
+				if( $renamePrefix == "")//run only once
+				{
+					$renamePrefix += dirname($str[0])+"/"+$rename;
+				}else{
+					$renamePrefix += "."+$str[$n];
+				};
+			}
+			
+
+			print ("\n$prefixName="+$prefixName+"\n");
+			print ("\n$renamePrefix="+$renamePrefix+"\n");
+			
+			//postfix fileName
+			string $postfixName = $str[size($str)-1];
+	    
+			
+			//copy frames
+			if($endFrame >= $startFrame)
+			{
+				for($i = $startFrame; $i<=$endFrame;$i++)
+				{			
+					string $paddingStr =""; 
+					string $frameNumToStr = $i;
+					for($m = 0;$m<$paddingSize-size($frameNumToStr);$m++)
+					{
+						$paddingStr+="0";
+					}
+					$paddingStr +=  $frameNumToStr;
+					//print ("\n$paddingStr = "+$paddingStr);
+					//print ("\n"+$prefixName+"."+$paddingStr+"."+$postfixName);
+
+					string $paddingStr_copySeed =""; 
+					string $frameNumToStr_copySeed = $copySeedFrame;
+
+					for($m = 0;$m<$paddingSize-size($frameNumToStr_copySeed);$m++)
+					{
+						$paddingStr_copySeed+="0";
+					}
+					$paddingStr_copySeed += $frameNumToStr_copySeed;
+		    
+					if($action == "copy")
+					{					
+						//print ("\n\""+$prefixName+"."+$paddingStr_copySeed+"."+$postfixName+"\"");
+						if( ` filetest -e  ($prefixName+"."+$paddingStr_copySeed+"."+$postfixName) `)
+						{				
+							if(! ` filetest -e  ($prefixName+"."+$paddingStr+"."+$postfixName) `)
+							{			
+								sysFile -copy ($prefixName+"."+$paddingStr+"."+$postfixName) ($prefixName+"."+$paddingStr_copySeed+"."+$postfixName);
+								print ("\n copy "+$prefixName+"."+$paddingStr+"."+$postfixName+"  ok !");
+							}
+
+						}else{warning "\n startFrame for copy seed not exist ! please reassign the startFrame number !";}
+
+					}
+
+					if($action == "delete")
+					{				
+						if(` filetest -e  ($prefixName+"."+$paddingStr+"."+$postfixName) `)
+						{			
+							sysFile -delete ($prefixName+"."+$paddingStr+"."+$postfixName) ;
+							print ("\n delete "+$prefixName+"."+$paddingStr+"."+$postfixName+"  ok !");
+						}else{	warning ("\n "+$prefixName+"."+$paddingStr+"."+$postfixName+" not exist !");}
+					}
+
+					if($action == "rename")
+					{				
+						if(` filetest -e  ($prefixName+"."+$paddingStr+"."+$postfixName) `)
+						{			
+							sysFile -rename ($renamePrefix+"."+$paddingStr+"."+$postfixName) ($prefixName+"."+$paddingStr+"."+$postfixName) ;
+							print ("\n rename "+$prefixName+"."+$paddingStr+"."+$postfixName+" to  "+($renamePrefix+"."+$paddingStr+"."+$postfixName)+" ok !");
+						}else{	warning ("\n "+$prefixName+"."+$paddingStr+"."+$postfixName+" not exist !");}
+					}
+				}
+			}//copy frame end
+			
+			
+		}
+	}	
+
+
+return;	
+}
+
+//tjh_copy_same_frame__autoCopy "D:/test/" 1 15;
+
+//tjh_copy_same_frame;

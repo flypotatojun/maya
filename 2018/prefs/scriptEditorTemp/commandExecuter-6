@@ -1,2 +1,0 @@
-string $cameraName[]=`listTransforms -cameras`;
-string $cameraName[]=`ls type "curves"`;

@@ -1,0 +1,2791 @@
+//coded by tiancg on 2016 ~  2020
+//====================================================================================================
+//batch attribute set tool.
+//本插件用于快速创建 物体节点的批量属性修改功能。支持预设创建，支持常规所有类型的属性。南无阿弥陀佛
+//UI.================================================================================================
+/*
+update V1.0.8  11/08/2020  
+修复了preset预设管理器预设文件保存路径错误的问题，更新了tjh_whatIs算法。
+运行更稳定
+
+update V1.0.7  05/24/2019  
+
+添加了批量属性添加与删除功能。
+修复了属性数组类值获取bug，
+添加了新的显示属性类类型type功能,
+
+update V1.0.5  03/13/2019  
+
+change name from "tjh_batch_attr_set" to "tjh_batch_attr_set" ,
+add many new features and bug fixed on. 数据操作更灵活 属性自定义添加更容易，色彩采集更方便。
+
+undate V1.0.2:  01/24/2019  bug fixed
+undate V1.0.0:  2016/09/24  
+*/
+
+/////////////// initial data ////////////////////////////////////////////////////////////////////////////
+global string $tjh_batch_attr_set__version = "V1.0.8";
+global string $tjh_batch_attr_set__updateTime = "2020-11-08";
+
+//初始化默认属性数量
+global int $tjh_batch_attr_set__advertisement___readTimes;
+global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num = 10;
+global string  $tjh_batch_attr_set_Preset_datas[];
+
+global string $tjh_batch_attr_set__currentSelected_preset;
+//if(size( $tjh_batch_attr_set__currentSelected_preset)==0)
+//{
+	tjh_batch_attr_set_read_preset_initial_readDataFromPresetFile;
+	//tjh_batch_attr_set_Preset_management "load" "<default>";
+//}
+
+//initial temp memory for save tempUI data.
+global string $tjh_batch_attr_set__tempUIStore[];
+
+
+
+tjh_batch_attr_set_xpm_creator;
+
+
+global proc tjh_batch_attr_set_Preset__saveDataToPresetFile_And_updateUI()
+{ 
+
+	global string  $tjh_batch_attr_set_Preset_datas[];		
+	
+	string $ScriptPath = `tjh_whatIs "tjh_batch_attr_set"`;	
+
+	
+	string $melFileName = $ScriptPath + "/tjh_batch_attr_set.preset.mel";
+
+        if(` filetest -e $melFileName `)//read the datas from file
+	{
+		int    $fileDesId=` fopen $melFileName "a"`;
+		
+		int $size = size($tjh_batch_attr_set_Preset_datas);
+		
+
+		fprint $fileDesId "global string  $tjh_batch_attr_set_Preset_datas[];$tjh_batch_attr_set_Preset_datas={";
+		//if($size == 1)$size = 0;
+		if( $size >10)
+		{
+			for($i=0;$i<$size;$i++)
+			{
+				if($i<($size-1)) fprint $fileDesId ("\""+$tjh_batch_attr_set_Preset_datas[$i]+"\",");
+				if($i==($size-1)) fprint $fileDesId ("\""+$tjh_batch_attr_set_Preset_datas[$i]+"\"");
+			}
+		}else{
+			clear $tjh_batch_attr_set_Preset_datas;
+		}
+
+		fprint $fileDesId "};";
+
+		fclose $fileDesId;
+
+	//updata UI.
+	tjh_batch_attr_set_mainUI;
+	global string $tjh_batch_attr_set__currentSelected_preset;
+	tjh_batch_attr_set_Preset_management "load"  $tjh_batch_attr_set__currentSelected_preset;
+        
+        }else{
+
+        tjh_batch_attr_set_read_preset_initial_readDataFromPresetFile;
+        
+        }
+
+
+        print "\n Save The Out Data To Preset File For Initial Ok  !";
+}
+
+global proc string tjh_whatIs(string $mel)
+{
+	string $path = ` whatIs $mel `;
+	//转换 "\" 路径为 "/" 路径
+	$path= dirname($path)+"/"+$mel;
+	string $temp1[];
+ 	$num = `tokenize $path ":" $temp1`;
+	$path = strip ($temp1[1]+":"+$temp1[2]);
+
+	string $temp2[];
+ 	$num = `tokenize $path "/" $temp2`;
+	$path = $temp2[0];
+
+	for ( $i = 1; $i<( $num-1); $i++ )
+	{
+		$path = $path + "/" + $temp2[$i];		
+	}
+return	$path;	
+}
+
+
+//  initial preset file setting 
+global proc tjh_batch_attr_set_read_preset_initial_readDataFromPresetFile()
+{
+	global string  $tjh_batch_attr_set_Preset_datas[];		
+	global string $tjh_batch_attr_set__currentSelected_preset;$tjh_batch_attr_set__currentSelected_preset = "<default>";	
+
+	string $ScriptPath =` tjh_whatIs "tjh_batch_attr_set"`;	
+	
+	
+	string $melFileName = $ScriptPath + "/tjh_batch_attr_set.preset.mel";
+
+		if(` filetest -e $melFileName `)//read the datas from file
+		{
+		int    $fileDesId=` fopen $melFileName "a"`;
+		eval("source \""+$melFileName+"\";");
+		fclose $fileDesId;
+
+		}else{
+			int    $fileDesId=` fopen $melFileName "w"`;
+                        //if no file exist and build default data for preset file. 
+			$tjh_batch_attr_set_Preset_datas={"<preset>","<default>","10","1","translateX","2","0 0 0","1","ty","3","0 0 0","1","scaleX","2","0 0 0","1","scaleX","(rand(5))","0 0 0","1","color","0.8588235378  0.5803921819  0.3372549117","0 0 0","1","color","(rand(2)) (rand(2)) (rand(2))","0 0 0","1","colorSpace","Raw","0 0 0","1","id","100","0 0 0","1","Quality.sample","3","0 0 0","1","object6Shape.value","5","0 0 0","0.8862745098 0.768627451 0.2980392157","<preset>","sample Attr-type","10","1","translateX"," 2","1 1 1","1","ty"," 3","1 1 1","1","scaleX"," 2","1 1 1","1","scaleX","  (rand(5))","0 0 0","1","color"," 0.8588235378  0.5803921819  0.3372549117","0.8588235294 0.5803921569 0.337254902","1","color"," (rand(2)) (rand(2)) (rand(2))","1 0.08741893645 1","1","colorSpace","Raw","0 0 0","1","id"," 100","1 1 1","1","Quality.sample"," 3","1 1 1","1","object6Shape.value"," 5","1 1 1","<preset>","sample color collection","10","1","color","0.09803921729  0.501960814  0.501960814","0.09803921569 0.5019607843 0.5019607843","1","color","0.8588235378  0.5803921819  0.3372549117","0.8588235294 0.5803921569 0.337254902","1","color","0.03921568766  0.380392164  0","0.03921568627 0.3803921569 0","1","color","0.6666666865  0.2392156869  0.2901960909","0.6666666667 0.2392156863 0.2901960784","1","color","0.5647059083  0.7294117808  0.8352941275","0.5647058824 0.7294117647 0.8352941176","1","color","0.5450980663  0.760784328  0.6196078658","0.5450980392 0.7607843137 0.6196078431","1","color","1  1  1","1 1 1","1","color","0.78039217  0.3019607961  0.2862745225","0.7803921569 0.3019607843 0.2862745098","1","color","0.6274510026  0.7568627596  0.9568627477","0.6274509804 0.7568627451 0.9568627451","1","color","0.8862745166  0.7686274648  0.2980392277","0.8862745098 0.768627451 0.2980392157"};
+			
+                        int $size = size($tjh_batch_attr_set_Preset_datas);
+		
+
+                        fprint $fileDesId "global string  $tjh_batch_attr_set_Preset_datas[];$tjh_batch_attr_set_Preset_datas={";
+                        //if($size == 1)$size = 0;
+                        if( $size >10)
+                        {
+                                for($i=0;$i<$size;$i++)
+                                {
+                                        if($i<($size-1)) fprint $fileDesId ("\""+$tjh_batch_attr_set_Preset_datas[$i]+"\",");
+                                        if($i==($size-1)) fprint $fileDesId ("\""+$tjh_batch_attr_set_Preset_datas[$i]+"\"");
+                                }
+                        }else{
+                                clear $tjh_batch_attr_set_Preset_datas;
+                        }
+
+                        fprint $fileDesId "};";  
+                        fclose $fileDesId;
+		}
+
+
+	print "\n tjh_batch_attr_set_read_preset file For Initial Ok  !";	
+
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+// main UI.
+
+global proc tjh_batch_attr_set_mainUI()
+{
+	//initial data.
+	global string $tjh_batch_attr_set__version;
+	global string $tjh_batch_attr_set__updateTime;
+
+	global string $tjh_batch_attr_set__currentSelected_preset;
+	if(size( $tjh_batch_attr_set__currentSelected_preset)==0 )
+	{
+		$tjh_batch_attr_set__currentSelected_preset = "<default>";
+		tjh_batch_attr_set_Preset_management "load" "<default>";
+	}
+	
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;
+	
+
+	if (` windowPref -exists tjh_batch_attr_set_window `)
+		    windowPref -remove tjh_batch_attr_set_window;     
+
+
+            
+	 if (` window -exists tjh_batch_attr_set_window `)
+		 deleteUI tjh_batch_attr_set_window;
+
+
+	window -title (" tjh_batch_attr_set "+$tjh_batch_attr_set__version+" 南无阿弥陀佛 Amitabha ") 
+		-menuBar true -rtf 1  -w 375 -h 140 tjh_batch_attr_set_window;
+	
+		//menu -label "Help" ;
+		//	menuItem -label "Help..." -c "tjh_batch_attr_set_help";
+
+		
+
+		menu -tearOff on -label "Setting" tjh_batch_attr_set__menu_Setting;
+		
+			menuItem  -label "Clear All Text Fields " -c "tjh_batch_attr_set__clearUi_AllTextFields" ;
+			menuItem  -label "create Multi blank Attrs... " -c "tjh_batch_attr_set__cmd_setting" ;
+			menuItem  -label "Attr catcher ON" -c "frameLayout -e -vis 1 tjh_batch_attr_set__cmdScrollFieldReporter_frameLayout" ;
+			menuItem  -label "Attr catcher OFF" -c "frameLayout -e -vis 0 tjh_batch_attr_set__cmdScrollFieldReporter_frameLayout" ;
+			menuItem  -label "< Reset All >!!! " -c "tjh_batch_attr_set___resetAll" ;
+
+			
+		menu -tearOff on -label "Preset" tjh_batch_attr_set__menu_Preset;
+			//menuItem  -label "Save..." -c "tjh_batch_attr_set_Preset" tjh_batch_attr_set__menuItem_Preset_save;
+			//menuItem  -label "Load..." -c "tjh_batch_attr_set_Preset" tjh_batch_attr_set__menuItem_Preset_load;
+			menuItem  -label "Preset Manager..." -c "tjh_batch_attr_set_Preset" ;
+			menuItem  -label "Save..." -c "tjh_batch_attr_set_Preset; tjh_batch_attr_set_create_preset_window;" ;
+			menuItem  -label "Load..." -c "tjh_batch_attr_set_Preset" ;
+			menuItem  -label "Delete..." -c "tjh_batch_attr_set_Preset" ;
+
+			menuItem  -label "Edit preset data file..." -c "tjh_batch_attr_set_openPreset" ;
+			menuItem  -label "";
+
+			//menuItem  -divider 1 
+			//-dividerLabel "preset" 
+			//-longDivider 1
+			;
+
+			//tjh_batch_attr_set_Preset__menuItems();
+
+		menu -tearOff on -label "Toggle" tjh_batch_attr_set__menu_toggle;
+			menuItem  -label "Toggle Invert" -c "tjh_batch_attr_set__toggle_Invert" tjh_batch_attr_set__menuItem_toggle_toggle_Invert;
+			menuItem  -label "Toggle All ON" -c "tjh_batch_attr_set__toggle_all_ON" tjh_batch_attr_set__menuItem_toggle_all_ON;
+			menuItem  -label "Toggle All Off" -c "tjh_batch_attr_set__toggle_all_Off" tjh_batch_attr_set__menuItem_toggle_all_Off;
+			
+
+		menu -tearOff on -label "Help Blog" tjh_batch_attr_set__menu_Blog;
+			menuItem  -label "About and help" -c "frameLayout -e -collapse 0 tjh_batch_attr_set__version_frameLayout";
+			menuItem  -label "Goto Blog..." -c "showHelp -absolute \"http://blog.csdn.net/tian0000hai\"" tjh_batch_attr_set__menuItem_Blog;
+
+
+
+	scrollLayout -childResizable 1 
+			     -minChildWidth 300
+			     //-backgroundColor 0.1 0.1 0.1 
+			     -w 400 
+			     -h 300
+			     ;
+
+		//columnLayout;
+
+		frameLayout -collapsable 1
+				-collapse 1
+				-visible 1
+				-label (" Version:   tjh_batch_attr_set "+$tjh_batch_attr_set__version+"      Update:"+$tjh_batch_attr_set__updateTime)
+				-font "boldLabelFont" //"boldLabelFont", "smallBoldLabelFont", "tinyBoldLabelFont", "plainLabelFont", "smallPlainLabelFont", "obliqueLabelFont", "smallObliqueLabelFont", "fixedWidthFont" and "smallFixedWidthFont"
+				tjh_batch_attr_set__version_frameLayout;				
+
+			//separator -h 20 -w 300;
+			global string $imagePath_tjh_batch_attr_set_xpm_title;
+			image -w 350 -h 100  -image $imagePath_tjh_batch_attr_set_xpm_title;
+                        text -w 300 -wordWrap on  -al "left" -l " <帮助:>\n    本插件用于快速修改物体属性.\n 1.可以自己输入要修改的属性和值，并保存为预设，属性的采集可以在属性栏，鼠标中键拖拽属性到插件属性输入栏，去掉点前的物体名即可，如果包含物体名则只能修改单独此物体的属性，否则可以批量修改具有此属性的所有选择的物体属性 .\n 2. 属性支持名称格式:\n radius | sphere1.radius | renderNode.shdingSample \n 3. 属性赋值格式: \n 0.99 | 1.0 1.0 1.0 | sRGB | on | TJH  \n 4. grap button ,可以采集色彩类属性值. \n 5. 点击每行右侧setAttr可以单独，修改本行属性.\n 6. 每行的开关可以控制批量修改时是否启用 \n \n 7. 通过菜单preset > preset manager  ,可以打开预设管理，快速调用保存的预设。预设mel文件名为tjh_batch_attr_set.preset.mel会保存在插件同级目录下.\n 数据格式为：<preset> + presetName + attrNumber + attrNumber x < toggle+ attrName + attrValue >... \n 例如 : \"<preset>\",\"presetName\",\"2\",\"1\",\"name1\",\"value1\",\"1\",\"name2\",\"value2\" ";
+
+
+			text -w 300 -wordWrap on  -al "left" -l " <help:>\n    This procedure can quick batch set the attriutes you selected. right click over textFields will into options.\n 1.preset file format : you can open and modify the preset data file by clicking menu preset> open the preset data file.\n <preset> + presetName + attrNumber + attrNumber x < toggle+ attrName + attrValue >... \n For Example : \"<preset>\",\"presetName\",\"2\",\"1\",\"name1\",\"value1\",\"1\",\"name2\",\"value2\" \n 2. Attr Fields supports follow formats :\n radius | sphere1.radius | renderNode.shdingSample \n 3. Value Fields Format: \n 0.99 | 1.0 1.0 1.0 | sRGB | on | TJH  \n 4. grap button ,can change value by grapping color. \n 5. run button ,can single change current attr for selected objects.";			
+		
+			setParent..;
+
+		
+		frameLayout    -collapsable 1
+				-collapse 0
+				-visible 0
+				-label ("Attributes Catcher: ")
+				-font "boldLabelFont" //"boldLabelFont", "smallBoldLabelFont", "tinyBoldLabelFont", "plainLabelFont", "smallPlainLabelFont", "obliqueLabelFont", "smallObliqueLabelFont", "fixedWidthFont" and "smallFixedWidthFont"
+				tjh_batch_attr_set__cmdScrollFieldReporter_frameLayout;
+				/*
+				 rowColumnLayout -w 400 -h 22				
+						-numberOfColumns 5
+						-columnWidth 1 25
+						-columnWidth 2 25
+						-columnWidth 3 150
+						-columnWidth 4 80
+						-columnWidth 5 95
+						;
+						//button -l "ON" -backgroundColor 0.1 0.3 0.5 -width 25 -c "tjh_batch_attr_set__toggleUI_catcher_On" ;
+						//button -l "OFF" -backgroundColor 0.1 0.4 0.5 -width 25 -c "tjh_batch_attr_set__toggleUI_catcher_Off" ;
+						button -l "Clear Commands History" -backgroundColor 0.1 0.5 0.5 -width 150 -c "cmdScrollFieldReporter -e -clear tjh_batch_attr_set__cmdScrollFieldReporter" ;
+						button -l "Echo all ON" -backgroundColor 0.1 0.4 0.5 -width 80 -c "cmdScrollFieldReporter -e -echoAllCommands 1 tjh_batch_attr_set__cmdScrollFieldReporter" ;
+						button -l "Echo all OFF" -backgroundColor 0.1 0.3 0.5 -width 95 -c "cmdScrollFieldReporter -e -echoAllCommands 0 tjh_batch_attr_set__cmdScrollFieldReporter" ;	
+					*/
+					//setParent ..;
+
+
+				 rowColumnLayout -w 400 -h 22				
+						-numberOfColumns 3
+						//-columnWidth 1 25
+						//-columnWidth 2 25
+						-columnWidth 1 200
+						-columnWidth 2 80
+						-columnWidth 3 95
+						;
+						//button -l "ON" -backgroundColor 0.1 0.3 0.5 -width 25 -c "tjh_batch_attr_set__toggleUI_catcher_On" ;
+						//button -l "OFF" -backgroundColor 0.1 0.4 0.5 -width 25 -c "tjh_batch_attr_set__toggleUI_catcher_Off" ;
+						button -l "Clear Commands History" -backgroundColor 0.1 0.5 0.5 -width 200 -c "cmdScrollFieldReporter -e -clear tjh_batch_attr_set__cmdScrollFieldReporter" ;
+						button -l "Echo all ON" -backgroundColor 0.1 0.4 0.5 -width 80 -c "cmdScrollFieldReporter -e -echoAllCommands 1 tjh_batch_attr_set__cmdScrollFieldReporter" ;
+						button -l "Echo all OFF" -backgroundColor 0.1 0.3 0.5 -width 95 -c "cmdScrollFieldReporter -e -echoAllCommands 0 tjh_batch_attr_set__cmdScrollFieldReporter" ;	
+					//setParent ..;
+					
+				 setParent..;
+
+				 columnLayout -w 400 -h 200 -en 1 tjh_batch_attr_set__cmdScrollFieldReporter_columnLayout;
+					cmdScrollFieldReporter -width 400 -height 200 tjh_batch_attr_set__cmdScrollFieldReporter;
+				 setParent ..;
+
+			//setParent ..;
+				 
+		setParent..;
+		
+
+		frameLayout -collapsable 1
+				-collapse 0
+				-label ("Attributes Batch Editor:     Current Preset: <"+$tjh_batch_attr_set__currentSelected_preset+">")
+				-font "boldLabelFont" //"boldLabelFont", "smallBoldLabelFont", "tinyBoldLabelFont", "plainLabelFont", "smallPlainLabelFont", "obliqueLabelFont", "smallObliqueLabelFont", "fixedWidthFont" and "smallFixedWidthFont"
+				;
+		
+			
+			rowColumnLayout -numberOfColumns 5
+				-columnWidth 1 50
+				-columnWidth 2 100
+				-columnWidth 3 150
+				-columnWidth 4 40
+				-columnWidth 5 40
+				;
+
+				text -l "Toggle:";
+				text -l "Attribute Name:";
+				text -l "value :";
+				button  -bgc  0.1 0.5 0.5 -l "+ Attr" -c ("tjh_batch_attr_set_Preset_management insert_OneBlank_Attr_forCurrentPreset \""+$tjh_batch_attr_set__currentSelected_preset+"\"");
+				button  -bgc  0.1 0.3 0.5 -l "- Attr" -c ("tjh_batch_attr_set_Preset_management remove_OneBlank_Attr_forCurrentPreset \""+$tjh_batch_attr_set__currentSelected_preset+"\"");
+
+				setParent ..;
+
+			//separator  -w 300;
+
+			//setParent ..;
+			if($tjh_batch_attr_set__float_int_boolean_enumAttr_create__num>0)
+			{
+			
+			/*frameLayout 
+				//-marginHeight 10 
+				//-marginWidth 10 
+				-collapsable 1 
+				-collapse 0 
+				-label "Float / int / boolean / enum Types:"  
+				-borderStyle "in"
+				;*/
+
+			
+
+			//create attr's textFields.
+			tjh_batch_attr_set__float_int_boolean_enumAttr_create;		
+
+			//setParent ..;
+			};
+
+			
+
+			//run proc button
+
+			separator -h 10 -w 300;
+
+			rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 200
+				-columnWidth 2 100;
+				
+				checkBox -v 0 -l "dag  Hierarchy" tjh_batch_attr_set__checkBox__HierarchyToggle;
+				//text -l "";
+				checkBox -v 1 -l "From Selected list" tjh_batch_attr_set__checkBox__SelectedToggle;			
+				
+				
+
+				rowColumnLayout -numberOfColumns 2
+					-columnWidth 1 100
+					-columnWidth 2 100
+					
+					;
+
+					button  -w 100 -backgroundColor 0.1 0.2 0.3-label " Get<sel-type>"  -ann "get select node-type"  -command  "tjh_batch_attr_get__selectNode";			
+
+					textField  -w 100 -text "(Node Type: mesh)" tjh_batch_attr_set__textField__nodeType_to_selected ;
+
+					setParent ..;			
+
+				button  -w 175 -backgroundColor 0.1 0.2 0.3 -label " Select Nodes"  -ann "select all type with same node-type"   -command  "tjh_batch_attr_set__select  \"nodetype\"";	
+				
+				/*
+				rowColumnLayout -numberOfColumns 2
+					-columnWidth 1 75
+					-columnWidth 2 75
+					
+					;
+
+					button  -w 75 -backgroundColor 0.7 1.0 1.0 -label " Select Nodes"  -ann "select all type"   -command  "tjh_batch_attr_set__select  \"nodetype\"";			
+
+					button  -w 75 -backgroundColor 0.5 0.5 1.0 -label " Set by Node"  -ann "set all attributes for select-type nodes"  -command  "tjh_batch_attr_set__run \"nodetype\"";
+					setParent ..;
+				*/
+
+				rowColumnLayout -numberOfColumns 2
+					-columnWidth 1 100
+					-columnWidth 2 100
+					
+					;
+
+					button  -w 100 -backgroundColor 0.1 0.2 0.3 -label " Get<sel-name>" -ann "get select  name" -command  "tjh_batch_attr_get__selectName";			
+
+					textField  -w 100 -text "(Name: abc)" tjh_batch_attr_set__textField__name_to_selected ;
+
+					setParent ..;
+				
+
+				button  -w 175 -backgroundColor 0.1 0.2 0.3 -label " Select Names"  -ann "select all  name"  -command  "tjh_batch_attr_set__select  \"name\"";
+				
+				/*
+				rowColumnLayout -numberOfColumns 2
+					-columnWidth 1 75
+					-columnWidth 2 75
+					
+					;s
+
+					button  -w 75 -backgroundColor 0.7 1.0 1.0 -label " Select Names"  -ann "select all  name"  -command  "tjh_batch_attr_set__select  \"name\"";			
+
+					button  -w 75 -backgroundColor 0.5 0.5 1.0 -label " Set by Name"  -ann "set  all attributes  for select-name nodes"  -command  "tjh_batch_attr_set__run \"name\"";	
+				
+					setParent ..;
+				*/
+
+				
+				button  -w 100 -backgroundColor 0.1 0.5 0.5 -ann " default to selected nodes,when No Selected only set full name attributes ." -label " Batch Set Attrs"  -command  "tjh_batch_attr_set__run \"selected\"";
+				button  -w 175 -backgroundColor 0.1 0.3 0.5 -label " clear All"  -command  "tjh_batch_attr_set_mainUI;";
+
+
+				setParent ..;
+			
+			setParent..;
+
+			
+			
+			setParent..;
+		
+
+	showWindow;
+
+	
+	//window  -e -w 400 -h 300 tjh_batch_attr_set_window;
+	
+
+}
+
+global proc  tjh_batch_attr_set__removeStringNameWithDot(string $textField)
+{
+        string $text = ` textField -q -text $textField `;
+        string $strings[];
+        tokenize $text "." $strings;
+
+        textField -e -text $strings[size($strings)-1] $textField;
+}
+
+
+global proc tjh_batch_attr_set__toggleUI_catcher_On()
+{
+	if(!` columnLayout -ex tjh_batch_attr_set__cmdScrollFieldReporter_columnLayout `)
+	{
+		columnLayout -p tjh_batch_attr_set__cmdScrollFieldReporter_frameLayout -w 400 -h 200 -en 0 tjh_batch_attr_set__cmdScrollFieldReporter_columnLayout;
+		cmdScrollFieldReporter -p tjh_batch_attr_set__cmdScrollFieldReporter_columnLayout -width 400 -height 200 tjh_batch_attr_set__cmdScrollFieldReporter;
+	}
+}
+
+global proc tjh_batch_attr_set__toggleUI_catcher_Off()
+{
+	if(` columnLayout -ex tjh_batch_attr_set__cmdScrollFieldReporter_columnLayout `)deleteUI  tjh_batch_attr_set__cmdScrollFieldReporter_columnLayout;
+}
+
+
+global proc tjh_batch_attr_set__cmd_setting()
+{
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;
+
+	
+
+	if (` windowPref -exists tjh_batch_attr_set__setting_window `)
+		    windowPref -remove tjh_batch_attr_set__setting_window;     
+
+			  
+		if (` window -exists tjh_batch_attr_set__setting_window `)
+			  deleteUI tjh_batch_attr_set__setting_window;
+
+
+	window  -menuBar true -rtf 1  -w 300 -h 50 tjh_batch_attr_set__setting_window;
+	
+		rowColumnLayout 				
+			-numberOfColumns 2
+			-columnWidth 1 150
+			-columnWidth 2 150			
+			;
+
+			
+			text   -l "Attributes Number:";	
+			intField -min 0 -v $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num tjh_batch_attr_set__intField_floatAttr;
+
+			
+			button  -w 150 -backgroundColor 0.1 0.5 0.5 -label " multi Add "  -command  "tjh_batch_attr_set__cmd_setting_run";
+
+			button  -w 150 -backgroundColor 0.1 0.3 0.5 -label "reset"  -command  "tjh_batch_attr_set__cmd_setting_reset";			
+
+			setParent ..;
+
+
+	showWindow;
+
+
+	//tjh_batch_attr_set__create_updateUI;
+}
+
+
+global proc tjh_batch_attr_set__cmd_setting_run()
+{
+	
+	
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;	
+	$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num = ` intField -q -v  tjh_batch_attr_set__intField_floatAttr `;
+	
+
+	//update main UI.
+	tjh_batch_attr_set_mainUI;
+
+}
+
+global proc tjh_batch_attr_set__cmd_setting_reset()
+{
+	
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;
+	global string $tjh_batch_attr_set__currentSelected_preset;
+	$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num = 3;
+	$tjh_batch_attr_set__currentSelected_preset ="";
+
+
+	//update setting UI.
+	tjh_batch_attr_set__cmd_setting;
+
+
+}
+
+
+global proc tjh_batch_attr_set___resetAll()
+{
+	global string  $tjh_batch_attr_set_Preset_datas[];		
+	
+	$tjh_batch_attr_set_Preset_datas={"<preset>","<default>","10","1","translateX","2","0 0 0","1","ty","3","0 0 0","1","scaleX","2","0 0 0","1","scaleX","(rand(5))","0 0 0","1","color","0.8588235378  0.5803921819  0.3372549117","0 0 0","1","color","(rand(2)) (rand(2)) (rand(2))","0 0 0","1","colorSpace","Raw","0 0 0","1","id","100","0 0 0","1","Quality.sample","3","0 0 0","1","object6Shape.value","5","0 0 0","0.8862745098 0.768627451 0.2980392157","<preset>","sample Attr-type","10","1","translateX"," 2","1 1 1","1","ty"," 3","1 1 1","1","scaleX"," 2","1 1 1","1","scaleX","  (rand(5))","0 0 0","1","color"," 0.8588235378  0.5803921819  0.3372549117","0.8588235294 0.5803921569 0.337254902","1","color"," (rand(2)) (rand(2)) (rand(2))","1 0.08741893645 1","1","colorSpace","Raw","0 0 0","1","id"," 100","1 1 1","1","Quality.sample"," 3","1 1 1","1","object6Shape.value"," 5","1 1 1","<preset>","sample color collection","10","1","color","0.09803921729  0.501960814  0.501960814","0.09803921569 0.5019607843 0.5019607843","1","color","0.8588235378  0.5803921819  0.3372549117","0.8588235294 0.5803921569 0.337254902","1","color","0.03921568766  0.380392164  0","0.03921568627 0.3803921569 0","1","color","0.6666666865  0.2392156869  0.2901960909","0.6666666667 0.2392156863 0.2901960784","1","color","0.5647059083  0.7294117808  0.8352941275","0.5647058824 0.7294117647 0.8352941176","1","color","0.5450980663  0.760784328  0.6196078658","0.5450980392 0.7607843137 0.6196078431","1","color","1  1  1","1 1 1","1","color","0.78039217  0.3019607961  0.2862745225","0.7803921569 0.3019607843 0.2862745098","1","color","0.6274510026  0.7568627596  0.9568627477","0.6274509804 0.7568627451{; 0.9568627451","1","color","0.8862745166  0.7686274648  0.2980392277","0.8862745098 0.768627451 0.2980392157"};
+	tjh_batch_attr_set_Preset__saveDataToPresetFile_And_updateUI;
+	global string $tjh_batch_attr_set__currentSelected_preset;$tjh_batch_attr_set__currentSelected_preset = "<default>";	
+	tjh_batch_attr_set_Preset_management "load" "<default>" ;
+
+}
+
+
+global proc tjh_batch_attr_set__float_int_boolean_enumAttr_create()
+{
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num ;
+	
+	string $cmd = "";
+
+	for($i=0;$i<$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;$i++)
+	{
+
+	//$cmd +=" separator -h 5 -w 300;";
+		
+	$cmd +=" rowColumnLayout -numberOfColumns 5 ";
+	$cmd +=" 	-columnWidth 1 50 ";
+	$cmd +=" 	-columnWidth 2 100 ";
+	$cmd +=" 	-columnWidth 3 150 ";
+	$cmd +=" 	-columnWidth 4 40 ";
+	$cmd +=" 	-columnWidth 5 40 ";
+	$cmd +=" 	; ";
+
+		$cmd +=" checkBox -w 70  -v 1 -label \"Attr:"+($i+1)+"\"  ";
+		$cmd +="     -changeCommand \"\"  ";
+		$cmd +="     -onCommand \"\"  ";
+		$cmd +="     -offCommand \"\"  ";
+		$cmd +="    tjh_batch_attr_set_checkBox_float"+($i+1)+";	 ";	
+		
+		$cmd +=" 	popupMenu ;  ";
+		$cmd +=" 		menuItem -l \"Toggle Invert\" -c \"tjh_batch_attr_set__toggle_Invert \";  ";
+		$cmd +=" 		menuItem -l \"Toggle All ON\" -c \"tjh_batch_attr_set__toggle_all_ON \";  ";
+		$cmd +=" 		menuItem -l \"Toggle All Off\" -c \"tjh_batch_attr_set__toggle_all_Off \";  ";
+
+		$cmd +=" textField  -w 100 -ann \"input the attribute with no dot ,or full attribute with dot, for example: radius | defaultRenderQuality.shadingSamples \" -text \"\"  ";
+		$cmd +=" 	tjh_batch_attr_set_textField_float"+($i+1)+";  ";
+
+		$cmd +=" 	popupMenu ;  ";
+		$cmd +=" 		menuItem -l \"remove character before dot\" -c \"tjh_batch_attr_set__removeStringNameWithDot tjh_batch_attr_set_textField_float"+($i+1)+";\";  ";
+		//$cmd +=" 		menuItem -l \"stop Catch State \" -c \"scriptJob -killAll\";  ";
+
+
+		$cmd +=" textField  -w 150 -cc \"tjh_batch_attr_set_textField_floatValue__changedCmd tjh_batch_attr_set_textField_float"+($i+1)+"Value  tjh_batch_attr_set_button_colorGrap"+($i+1)+"\" -text \"\"   ";
+		$cmd +=" 	tjh_batch_attr_set_textField_float"+($i+1)+"Value;  ";
+	
+
+		$cmd +=" 	popupMenu ;  ";
+		
+		$cmd +=" 		menuItem -l \"Clear All Fields \" -c \"tjh_batch_attr_set__clearUi_AllTextFields;\";  ";
+		$cmd +=" 		menuItem -l \"Open Presets . . . \" -c \"tjh_batch_attr_set_Preset\";  ";
+	
+		$cmd +=" 		menuItem -subMenu 1 -tearOff 1 -en 1 -l \"----- Display Value: ------  \" -c \"\";  ";
+
+		$cmd +=" 		menuItem -l \"Display Current Values From All Selected  ... \" -c \"tjh_batch_attr_set_textField_showValuesFromSelected tjh_batch_attr_set_textField_float"+($i+1)+" tjh_batch_attr_set_textField_float"+($i+1)+"Value current;\";  ";
+		
+		$cmd +=" 		menuItem -l \"Display All Values From All Selected  ... \" -c \"tjh_batch_attr_set_textField_showValuesFromSelected tjh_batch_attr_set_textField_float"+($i+1)+" tjh_batch_attr_set_textField_float"+($i+1)+"Value all;\";  ";
+
+		$cmd +=" 		setParent -menu ..;  ";
+
+		$cmd +=" 		menuItem -subMenu 1 -tearOff 1 -en 1  -l \"----- Get Value: ------  \" -c \"\";  ";
+
+		
+		$cmd +=" 		menuItem -l \"Get Current Value From One Selected\" -c \"tjh_batch_attr_set_textField_getValueFromSelected tjh_batch_attr_set_textField_float"+($i+1)+" tjh_batch_attr_set_textField_float"+($i+1)+"Value;\";  ";
+		$cmd +=" 		menuItem -l \"Get All Values From One Selected\" -c \"tjh_batch_attr_set_textField_getAllValueFromSelected\";  ";
+		
+		$cmd +=" 		setParent -menu ..;  ";
+
+		$cmd +=" 		menuItem -subMenu 1 -tearOff 1 -en 1 -l \"----- Random Value: ------  \" -c \"\";  ";
+
+		$cmd +=" 		menuItem -l \"rand( max )\" -c \"tjh_batch_attr_set_textField_randMethodA tjh_batch_attr_set_textField_float"+($i+1)+"Value;\";  ";
+		$cmd +=" 		menuItem -l \"rand( 0 , max )\" -c \"tjh_batch_attr_set_textField_randMethodB tjh_batch_attr_set_textField_float"+($i+1)+"Value;\";  ";
+		$cmd +=" 		menuItem -l \"rand( min , max )\" -c \"tjh_batch_attr_set_textField_randMethodD tjh_batch_attr_set_textField_float"+($i+1)+"Value;\";  ";
+		$cmd +=" 		menuItem -l \"(rand( x ))_(rand( y ))_(rand( z ))\" -c \"tjh_batch_attr_set_textField_randMethodC tjh_batch_attr_set_textField_float"+($i+1)+"Value;\";  ";
+		$cmd +=" 		menuItem -l \"on\" -c \"tjh_batch_attr_set_textField_insertValueMethod on tjh_batch_attr_set_textField_float"+($i+1)+"Value;\";  ";
+		$cmd +=" 		menuItem -l \"off\" -c \"tjh_batch_attr_set_textField_insertValueMethod off tjh_batch_attr_set_textField_float"+($i+1)+"Value;\";  ";
+		
+		$cmd +=" 		setParent -menu ..;  ";
+
+                $cmd +=" 		menuItem -subMenu 1 -tearOff 1 -en 1 -l \"----- Multiply  Value: ------  \" -c \"\";  ";
+
+		$cmd +=" 		menuItem -l \"( X * 1.1 )\" -c \"tjh_batch_attr_set_textField_MultiplyMethodA 1.1 tjh_batch_attr_set_textField_float"+($i+1)+"Value;\";  ";
+
+                $cmd +=" 		menuItem -l \"( X * 1.1 ) ( Y * 1.1 ) ( Z * 1.1 )\" -c \"tjh_batch_attr_set_textField_MultiplyMethodC 1.1 tjh_batch_attr_set_textField_float"+($i+1)+"Value;\";  ";
+
+                $cmd +=" 		setParent -menu ..;  ";
+
+		$cmd +=" 		menuItem -subMenu 1 -tearOff 1 -en 1 -l \"----- Add Attributes: ------  \" -c \"\";  ";
+
+		$cmd +=" 		menuItem -l \"Add < Vector > Attribute\" -c \"tjh_batch_attr_set___Add_Attr_into_textField Vector tjh_batch_attr_set_textField_float"+($i+1)+";\";  ";
+		$cmd +=" 		menuItem -l \"Add < Int > Attribute\" -c \"tjh_batch_attr_set___Add_Attr_into_textField Int tjh_batch_attr_set_textField_float"+($i+1)+";\";  ";
+		$cmd +=" 		menuItem -l \"Add < Float > Attribute\" -c \"tjh_batch_attr_set___Add_Attr_into_textField Float tjh_batch_attr_set_textField_float"+($i+1)+";\";  ";
+		$cmd +=" 		menuItem -l \"Add < String > Attribute\" -c \"tjh_batch_attr_set___Add_Attr_into_textField String tjh_batch_attr_set_textField_float"+($i+1)+";\";  ";
+		$cmd +=" 		menuItem -l \"Add < Boolean > Attribute\" -c \"tjh_batch_attr_set___Add_Attr_into_textField Boolean tjh_batch_attr_set_textField_float"+($i+1)+";\";  ";
+		$cmd +=" 		menuItem -l \"Add < Enum > Attribute\" -c \"tjh_batch_attr_set___Add_Attr_into_textField Enum tjh_batch_attr_set_textField_float"+($i+1)+";\";  ";
+
+		$cmd +=" 		setParent -menu ..;  ";
+
+		$cmd +=" 		menuItem -subMenu 1 -tearOff 1 -en 1 -l \"----- Delete Attributes: ------  \" -c \"\";  ";
+
+		$cmd +=" 		menuItem -l \"Delete < > Attribute\" -c \"tjh_batch_attr_set___Add_Attr_into_textField Delete tjh_batch_attr_set_textField_float"+($i+1)+";\";  ";
+		
+		$cmd +=" 		setParent -menu ..;  ";
+
+		$cmd +=" 		menuItem -subMenu 1 -tearOff 1 -en 1 -l \"----- default Value: ------  \" -c \"\";  ";
+
+
+		$cmd +=" 		menuItem -l \"save as default\" -c \"tjh_batch_attr_set_textField_save tjh_batch_attr_set_textField_float"+($i+1)+"Value;\";  ";
+		$cmd +=" 		menuItem -l \"restore default\" -c \"tjh_batch_attr_set_textField_restore tjh_batch_attr_set_textField_float"+($i+1)+"Value;\";  ";
+
+		$cmd +=" 		setParent -menu ..;  ";
+
+
+		$cmd +=" button -bgc 0 0 0 -w 25 -ann \"grap color for value \"  -label \"grab\"  -command  \"tjh_batch_attr_set___grapColor tjh_batch_attr_set_textField_float"+($i+1)+"Value  tjh_batch_attr_set_button_colorGrap"+($i+1)+"\"  tjh_batch_attr_set_button_colorGrap"+($i+1)+"; ";
+
+		$cmd +=" button  -w 25 -ann \"Run single Attr for selected objects . \"  -label \"setAttr\"  -command  \"tjh_batch_attr_set___runSingleAttr tjh_batch_attr_set_textField_float"+($i+1)+" tjh_batch_attr_set_textField_float"+($i+1)+"Value\" ;"; 		
+
+
+		$cmd +=" setParent ..; ";
+
+	}
+
+	eval $cmd;
+}
+
+
+
+global proc  tjh_batch_attr_set__clearUi_AllTextFields()
+{
+
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num ;
+	for($k=0;$k<$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;$k++)
+	{
+		textField -e -text "" ("tjh_batch_attr_set_textField_float"+($k+1));
+		textField -e -text "" ("tjh_batch_attr_set_textField_float"+($k+1)+"Value");
+	}
+			
+}
+
+
+global proc  tjh_batch_attr_set___Add_Attr_into_textField(string $attrType,string $attr_name_textField)
+{
+	 if($attrType == "Vector")
+	 {
+		textField -e -text  ( "Add_"+$attrType +" 0 0 0 ") ($attr_name_textField+"Value");
+	 }
+
+	  if($attrType == "Int")
+	 {
+		textField -e -text  ( "Add_"+$attrType +" -10 0 10 " ) ($attr_name_textField+"Value");
+	 }
+
+	  if($attrType == "Float")
+	 {
+		textField -e -text  ( "Add_"+$attrType +" -1.0 0 1.0 " ) ($attr_name_textField+"Value");
+	 }
+
+	  if($attrType == "String")
+	 {
+		textField -e -text  ( "Add_"+$attrType +" null " ) ($attr_name_textField+"Value");
+	 }
+
+	  if($attrType == "Boolean")
+	 {
+		textField -e -text  ( "Add_"+$attrType +" true " )($attr_name_textField+"Value");
+	 }
+
+	  if($attrType == "Enum")
+	 {
+		textField -e -text  ( "Add_"+$attrType +" one two three " ) ($attr_name_textField+"Value");
+	 }
+
+	  if($attrType == "Delete")
+	 {
+		textField -e -text  ( "Delete_Attr" ) ($attr_name_textField+"Value");
+	 }
+}
+
+
+
+global proc  tjh_batch_attr_set___Add_Attr_cmd(string $attr_name_textField,string $NodeName)
+{
+
+	string $attrValue_textField =  ` textField -q -text  ($attr_name_textField+"Value") `;
+	string $attrName = ` textField -q -text  $attr_name_textField `;
+
+	string $values[] ;
+	tokenize $attrValue_textField " " $values;
+
+	string $attrType = $values[0];
+
+	//delete Attributes
+	if(` objExists ($NodeName+"."+$attrName)` && $attrType == "Delete_Attr" )
+	{					
+		deleteAttr  ($NodeName+"."+$attrName);	
+		print (("\n"+$NodeName+"."+$attrName)+ " has been Deleted OK ! ");
+	
+	}
+	//else{warning ($NodeName+"."+$attrName+" don't Exist!");}
+
+
+	//add Attributes
+	if(!` objExists ($NodeName+"."+$attrName)`)
+	{
+		if($attrType == "Add_Vector")
+		{		
+			addAttr -ln $attrName  -at double3  $NodeName;
+			addAttr -ln ($attrName+"X")  -at double -p $attrName  $NodeName;
+			addAttr -ln ($attrName+"Y")  -at double -p $attrName  $NodeName;
+			addAttr -ln ($attrName+"Z")  -at double -p $attrName  $NodeName;
+
+			setAttr -type double3 ($NodeName+"."+$attrName) (float($values[1])) (float($values[2])) (float($values[3]));
+			setAttr -e-keyable true ($NodeName+"."+$attrName);
+			setAttr -e-keyable true ($NodeName+"."+$attrName+"X") ;
+			setAttr -e-keyable true ($NodeName+"."+$attrName+"Y") ;
+			setAttr -e-keyable true ($NodeName+"."+$attrName+"Z") ;
+			
+			//setAttr -type double3 ($NodeName+"."+$attrName) $values[1] $values[2] $values[3];
+			setAttr ($NodeName+"."+$attrName+"X") (float($values[1])) ;
+			setAttr ($NodeName+"."+$attrName+"Y") (float($values[2]));
+			setAttr ($NodeName+"."+$attrName+"Z") (float($values[3]));
+		}
+
+		if($attrType == "Add_Int")
+		{		
+			addAttr -ln $attrName  -at long  -min (int($values[1])) -max (int($values[3])) -dv (int($values[2])) $NodeName;
+			setAttr -e-keyable true ($NodeName+"."+$attrName);
+		}
+		if($attrType == "Add_String")
+		{		
+			addAttr -ln $attrName  -dt "string"  $NodeName;
+			setAttr -e-keyable true ($NodeName+"."+$attrName);
+			setAttr ($NodeName+"."+$attrName) -type "string" $values[1]   ;
+		}
+		if($attrType == "Add_Float")
+		{		
+			addAttr -ln $attrName  -at double   -min (float($values[1])) -max (float($values[3])) -dv (float($values[2])) $NodeName;
+			setAttr -e-keyable true ($NodeName+"."+$attrName);
+		}
+		if($attrType == "Add_Boolean")
+		{		
+			addAttr -ln $attrName  -at bool  $NodeName;
+			setAttr -e-keyable true ($NodeName+"."+$attrName);
+		}
+		if($attrType == "Add_Enum")
+		{			
+			string $enum ="";
+			for($i=1;$i<size($values);$i++)
+			{
+				if($i==1)$enum+=$values[$i];
+				if($i>1)$enum+=":"+$values[$i];
+			}
+			addAttr -ln $attrName  -at "enum" -en $enum   $NodeName;
+			setAttr -e-keyable true ($NodeName+"."+$attrName);
+		}
+
+		print ("\n"+$NodeName+"."+$attrName+ " has been added OK . ");
+	}else{warning ("\n"+$NodeName+"."+$attrName+" already Exist! please change name first !");}
+
+}
+
+
+global proc  tjh_batch_attr_set_textField_floatValue__changedCmd(string $attrValueTextFieldUI,string $buttonTextFieldUI)
+{
+	string $value = ` textField -q -text  $attrValueTextFieldUI `;
+	string $valueArrays[];
+	tokenize $value " " $valueArrays;
+	
+	if (size($valueArrays)<=1 )
+	{
+		float $floatValue =  float($value);
+		button -e -bgc $floatValue $floatValue $floatValue $buttonTextFieldUI;
+	}else if (size($valueArrays)==3)
+	{
+		string $cmd = "button -e -bgc "+$value+" "+$buttonTextFieldUI;
+		eval $cmd;
+	}
+
+}
+
+
+global proc  tjh_batch_attr_set___grapColor(string $attrValueTextFieldUI,string $buttonTextFieldUI)
+{
+	string $value = ` textField -q -text  $attrValueTextFieldUI `;
+	string $valueArrays[];
+	tokenize $value " " $valueArrays;
+
+	float $color[] = ` grabColor -rgbValue `;
+	
+	/*
+	if (size($valueArrays)<=1 )
+	{
+		float $floatValue =  float($value);
+		button -e -bgc ($color[0]) $buttonTextFieldUI;
+		textField -e -text ($color[0])  $attrValueTextFieldUI;
+
+	}else if (size($valueArrays)==3)
+	{
+	*/
+		string $cmd = "button -e -bgc "+($color[0])+"  "+($color[1])+"  "+($color[2])+" "+$buttonTextFieldUI;
+		eval $cmd;
+		textField -e -text ($color[0]+"  "+$color[1]+"  "+$color[2])  $attrValueTextFieldUI;
+	//}
+
+}
+
+
+global proc tjh_batch_attr_set_textField_showValuesFromSelected(string $attrTextFieldUI,string $attrValueTextFieldUI,string $method)
+//$method : current | all
+{
+
+	string $selects[];$selects = ` ls -sl `;
+	string $sel;
+	string $attr = ` textField -q -text  $attrTextFieldUI `;
+	//string $floatValue = ` textField -q -text  $attrValueTextFieldUI `;
+	string $attrArrays[];
+	string $valueArrays[];
+	tokenize $attr "." $attrArrays;
+	//tokenize $floatValue " " $valueArrays;
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num ;
+
+
+
+
+	string $displayContent="";
+
+		$displayContent  ="if(`windowPref -exists tjh_batch_attr_set_showValue_window `)";
+		$displayContent+= "      windowPref -remove  tjh_batch_attr_set_showValue_window;\n";
+		 
+		$displayContent+= "	  if(`window -exists  tjh_batch_attr_set_showValue_window `) ";
+		$displayContent+= "	  deleteUI tjh_batch_attr_set_showValue_window;\n";
+
+		$displayContent+= "		window     -widthHeight 720 450   ";
+		$displayContent+= "				 -title \"tjh_batch_attr_set_showValue\"  ";
+		$displayContent+= "				 -topLeftCorner 50 200   ";
+		//$displayContent+= "				 -bgc 0.1 0.3 0.4	   ";
+		$displayContent+= "				 -sizeable 1                 ";
+		$displayContent+= "				 -rtf 1                          ";
+		$displayContent+= "				 -minimizeButton 1      ";
+		$displayContent+= "				 -maximizeButton 0     ";
+		$displayContent+= "				 tjh_batch_attr_set_showValue_window;\n";
+		$displayContent+= "		scrollLayout  -w 500 -h 300;\n";
+		$displayContent+= "				 rowColumnLayout -numberOfColumns 9   ";
+		
+		$displayContent+= "				  -columnWidth 1 100     ";
+		$displayContent+= "				  -columnWidth 2 100     ";
+		$displayContent+= "				  -columnWidth 3 100     ";
+		$displayContent+= "				  -columnWidth 4 200     ";
+		$displayContent+= "				  -columnWidth 5 50     ";
+		$displayContent+= "				  -columnWidth 6 50     ";
+		$displayContent+= "				  -columnWidth 7 25     ";
+		$displayContent+= "				  -columnWidth 8 25     ";
+		$displayContent+= "				  -columnWidth 9 50     ";
+
+		$displayContent+= "				  -columnAttach 1 both 5    ";
+		$displayContent+= "				  -columnAttach 2 both 5    ";
+		$displayContent+= "				  -columnAttach 3 both 5    ";
+		$displayContent+= "				  -columnAttach 4 both 5    ";
+		$displayContent+= "				  -columnAttach 5 both 5    ";
+		$displayContent+= "				  -columnAttach 6 both 5    ";
+		$displayContent+= "				  -columnAttach 7 both 5    ";
+		$displayContent+= "				  -columnAttach 8 both 5    ";
+		$displayContent+= "				  -columnAttach 9 both 5    ";
+
+		$displayContent+= "				  ;\n    ";
+
+		$displayContent+= "				 \n text -w 100 -font \"boldLabelFont\" -al \"center\" -l  \"Node: \";";
+		$displayContent+= "				 \n text -w 100 -font \"boldLabelFont\" -al \"center\" -l  \"Attribute: \";";
+		$displayContent+= "				 \n text -w 100 -font \"boldLabelFont\" -al \"center\" -l  \"Type: \";";
+		$displayContent+= "				 \n text -w 200 -font \"boldLabelFont\" -al \"center\" -l  \"Value:\";";
+		$displayContent+= "				 \n text -w 50 -font \"boldLabelFont\" -al \"center\" -l  \"Get Value:\";";
+		$displayContent+= "				 \n text -w 50 -font \"boldLabelFont\" -al \"center\" -l  \"select:\";";		
+		$displayContent+= "				 \n text -w 25 -font \"boldLabelFont\" -al \"center\" -l  \"++\";";
+		$displayContent+= "				 \n text -w 25 -font \"boldLabelFont\" -al \"center\" -l  \"--\";";
+		$displayContent+= "				 \n text -w 50 -font \"boldLabelFont\" -al \"center\" -l  \"Edit:\";";
+
+		$displayContent+= "				 \n text -w 100 -font \"boldLabelFont\" -al \"center\" -l  \"--------------\";";
+		$displayContent+= "				 \n text -w 100 -font \"boldLabelFont\" -al \"center\" -l  \"-------------- \";";
+		$displayContent+= "				 \n text -w 100 -font \"boldLabelFont\" -al \"center\" -l  \"-------------- \";";
+		$displayContent+= "				 \n text -w 200 -font \"boldLabelFont\" -al \"center\" -l  \"--------------\";";
+		$displayContent+= "				 \n text -w 50 -font \"boldLabelFont\" -al \"center\" -l  \"  \";";
+		$displayContent+= "				 \n text -w 50 -font \"boldLabelFont\" -al \"center\" -l  \"  \";";
+		$displayContent+= "				 \n text -w 25 -font \"boldLabelFont\" -al \"center\" -l  \"  \";";
+		$displayContent+= "				 \n text -w 25 -font \"boldLabelFont\" -al \"center\" -l  \"  \";";
+		$displayContent+= "				 \n text -w 50 -font \"boldLabelFont\" -al \"center\" -l  \"  \";";
+
+
+	string $uiAttr = $attr;
+	string $uiValue = "";
+	string $attrType= "";
+	
+
+	switch( $method)
+	{
+		case "current":
+
+		//float int boolean enum  attrs
+		for($i=0;$i<size($selects);$i++)
+		{
+					
+			if(` objExists ($selects[$i]+"."+$attr) ` )
+			{		
+				$attrType= ` getAttr -type ($selects[$i]+"."+$attr)`;
+				//when single attr
+				if(size($attrArrays)==1  )
+				{
+
+					if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2")
+					{	
+						float $floatValues[];
+						
+							$floatValues=  ` getAttr ($selects[$i]+"."+$attr)`;//local node attr
+							//textField -e -text ( $floatValues[0]+" "+ $floatValues[1]+" "+ $floatValues[2]) $attrValueTextFieldUI ;
+							//print ("\n Get "+$selects[$i]+"."+$attr+" attribute ok !");
+
+							//continue;
+							$uiValue = "";
+							for($j = 0 ;$j<size($floatValues);$j++)
+							{
+								if($j==0)$uiValue +=$floatValues[$j];
+								if($j>0)$uiValue +=" "+$floatValues[$j];
+							}
+
+							//$uiValue = $floatValues[0]+"  "+ $floatValues[1]+"  "+ $floatValues[2];
+
+						
+						
+					}else { //other attr types
+						
+						string $stringValue;
+							$stringValue=  ` getAttr ($selects[$i]+"."+$attr)`;
+							//textField -e -text  $stringValue $attrValueTextFieldUI ;
+							//print ("\n Get "+$selects[$i]+"."+$attr+" attribute ok !");
+
+							$uiValue = $stringValue;
+
+							//continue;
+						
+					}		
+				}
+
+			 
+			}//else{ warning ("\n "+($selects[0]+"."+$attr)+"  nodes or global attr not  exists! ");}	
+			
+				
+			// when global attr for example: default.samples ==============================
+			if(` objExists $attr `   )
+			{
+				$attrType= ` getAttr -type $attr `;
+				if(size($attrArrays)==2 ) 		
+				{ 
+					
+					if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2" )
+					{	
+						float $floatValues[];
+						
+							$floatValues=  ` getAttr $attr`;//local node attr
+							//textField -e -text ( $floatValues[0]+" "+ $floatValues[1]+" "+ $floatValues[2]) $attrValueTextFieldUI ;
+							//print ("\n Get "+$attr+" attribute ok !");
+
+							//continue;
+							$uiValue = "";
+							for($j = 0 ;$j<size($floatValues);$j++)
+							{
+								if($j==0)$uiValue +=$floatValues[$j];
+								if($j>0)$uiValue +=" "+$floatValues[$j];
+							}
+
+							//$uiValue = $floatValues[0]+"  "+ $floatValues[1]+"  "+ $floatValues[2];
+						
+					}else { //other attr types
+						
+						string $stringValue;
+							$stringValue=  ` getAttr $attr`;
+							//textField -e -text  $stringValue $attrValueTextFieldUI ;
+							//print ("\n Get "+$attr+" attribute ok !");
+
+							//continue;
+							$uiValue = $stringValue;
+					}
+				};
+				
+			
+			
+			}//else{ warning ("\n  "+$attr+"  nodes or global attr not  exists! ");}
+
+				
+			// node name:
+			$displayContent+= "\n textField  -w 100  -ed 0 -text  \""+$selects[$i]+"  \";";		
+			
+			// attr name:
+			$displayContent+= "\n textField  -w 100  -ed 0  -text  \""+$uiAttr+"  \" tjh_batch_attr_set_textField_showValuesFromSelected"+($i+1)+";";
+
+			// attr type:
+			$displayContent+= "\n textField  -w 100   -ed 0 -text  \"< "+$attrType+" > \";";
+			
+			// value :
+			$displayContent+= "\n textField  -w 200   -ed 1  -text  \""+$uiValue+"  \" tjh_batch_attr_set_textField_showValuesFromSelected"+($i+1)+"Value;";		
+			
+
+			//$displayContent+="\n button -h 10 -w 45 -al \"right\" -label \"Get V\"  -command  \"textField -e -text  \\\""+$uiValue+"\\\" "+$attrValueTextFieldUI+"\";";
+			$displayContent+="\n button -h 10 -w 45 -al \"right\" -label \"Get V\"  -command  \"string $value;$value= ` textField -q -text tjh_batch_attr_set_textField_showValuesFromSelected"+($i+1)+"Value`;textField -e -text  $value "+$attrValueTextFieldUI+"\";";
+			$displayContent+="\n button -ann \"select single node.\" -h 10 -w 45 -al \"right\" -label \"Select\"  -command  \"select -r -ne "+$selects[$i]+"\";";
+			$displayContent+="\n button -ann \"select single node.\" -h 10 -w 20 -al \"right\" -label \"+\"  -command  \"select -add "+$selects[$i]+"\";";
+			$displayContent+="\n button -ann \"select single node.\" -h 10 -w 20 -al \"right\" -label \"-\"  -command  \"select -d "+$selects[$i]+"\";";
+			$displayContent+=" button  -w 50 -ann \"Run single Attr for selected objects . \"  -label \"setAttr\"  -command  \"tjh_batch_attr_set___runSingleAttr tjh_batch_attr_set_textField_showValuesFromSelected"+($i+1)+" tjh_batch_attr_set_textField_showValuesFromSelected"+($i+1)+"Value\" ;"; 		
+
+
+		
+		}//end main for 
+		break;
+		
+		case "all":
+
+		int $id = 1;
+
+		//float int boolean enum  attrs
+		for($i=0;$i<size($selects);$i++)
+		{
+			
+			for($k=0;$k<$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;$k++)
+			{
+			
+				int $toggle = ` checkBox -q  -v ("tjh_batch_attr_set_checkBox_float"+($k+1)) `;
+				if($toggle == 1)
+				{
+				
+				
+					$attr = ` textField -q -text ("tjh_batch_attr_set_textField_float"+($k+1)) `;
+					$uiAttr = $attr;
+
+					
+					
+					
+					if(` objExists ($selects[$i]+"."+$attr) ` )
+					{		
+						$attrType= ` getAttr -type ($selects[$i]+"."+$attr)`;
+						//when single attr
+						if(size($attrArrays)==1  )
+						{
+
+							if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2")
+							{	
+								float $floatValues[];
+								
+									$floatValues=  ` getAttr ($selects[$i]+"."+$attr)`;//local node attr
+									//textField -e -text ( $floatValues[0]+" "+ $floatValues[1]+" "+ $floatValues[2]) $attrValueTextFieldUI ;
+									//print ("\n Get "+$selects[$i]+"."+$attr+" attribute ok !");
+
+									//continue;
+									$uiValue = "";
+									for($j = 0 ;$j<size($floatValues);$j++)
+									{
+										if($j==0)$uiValue +=$floatValues[$j];
+										if($j>0)$uiValue +=" "+$floatValues[$j];
+									}
+
+									//$uiValue = $floatValues[0]+"  "+ $floatValues[1]+"  "+ $floatValues[2];
+
+								
+								
+							}else { //other attr types
+								
+								string $stringValue;
+									$stringValue=  ` getAttr ($selects[$i]+"."+$attr)`;
+									//textField -e -text  $stringValue $attrValueTextFieldUI ;
+									//print ("\n Get "+$selects[$i]+"."+$attr+" attribute ok !");
+
+									$uiValue = $stringValue;
+
+									//continue;
+								
+							}		
+						}
+
+					 
+					}//else{ warning ("\n "+($selects[0]+"."+$attr)+"  nodes or global attr not  exists! ");}	
+					
+						
+					// when global attr for example: default.samples ==============================
+					if(` objExists $attr `   )
+					{
+						$attrType= ` getAttr -type $attr `;
+						if(size($attrArrays)==2 ) 		
+						{ 
+							
+							if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2" )
+							{	
+								float $floatValues[];
+								
+									$floatValues=  ` getAttr $attr`;//local node attr
+									//textField -e -text ( $floatValues[0]+" "+ $floatValues[1]+" "+ $floatValues[2]) $attrValueTextFieldUI ;
+									//print ("\n Get "+$attr+" attribute ok !");
+
+									//continue;
+									$uiValue = "";
+									for($j = 0 ;$j<size($floatValues);$j++)
+									{
+										if($j==0)$uiValue +=$floatValues[$j];
+										if($j>0)$uiValue +=" "+$floatValues[$j];
+									}
+
+									//$uiValue = $floatValues[0]+"  "+ $floatValues[1]+"  "+ $floatValues[2];
+								
+							}else { //other attr types
+								
+								string $stringValue;
+									$stringValue=  ` getAttr $attr`;
+									//textField -e -text  $stringValue $attrValueTextFieldUI ;
+									//print ("\n Get "+$attr+" attribute ok !");
+
+									//continue;
+									$uiValue = $stringValue;
+							}
+						};
+						
+					
+					
+					}//else{ warning ("\n  "+$attr+"  nodes or global attr not  exists! ");}
+
+
+					
+
+						
+					// node name:
+					$displayContent+= "\n textField  -ed 0 -w 100  -text  \""+$selects[$i]+"  \";";		
+					
+					// attr name:
+					$displayContent+= "\n textField  -ed 0 -w 100   -text  \""+$uiAttr+"  \" tjh_batch_attr_set_textField_showValuesFromSelected"+$id+";";
+
+					// attr type:
+					$displayContent+= "\n textField  -ed 0 -w 100   -text  \"< "+$attrType+" > \";";
+					
+					// value :
+					$displayContent+= "\n textField  -ed 1 -w 200   -text  \""+$uiValue+"  \" tjh_batch_attr_set_textField_showValuesFromSelected"+$id+"Value;";		
+					
+
+					$displayContent+="\n button -h 10 -w 45 -al \"right\" -label \"Get V\"  -command  \"string $value;$value= ` textField -q -text tjh_batch_attr_set_textField_showValuesFromSelected"+$id+"Value`;textField -e -text  $value "+("tjh_batch_attr_set_textField_float"+($k+1))+"Value\";";
+					$displayContent+="\n button -ann \"select single node.\" -h 10 -w 45 -al \"right\" -label \"Select\"  -command  \"select -r -ne "+$selects[$i]+"\";";
+					$displayContent+="\n button -ann \"select single node.\" -h 10 -w 20 -al \"right\" -label \"+\"  -command  \"select -add "+$selects[$i]+"\";";
+					$displayContent+="\n button -ann \"select single node.\" -h 10 -w 20 -al \"right\" -label \"-\"  -command  \"select -d "+$selects[$i]+"\";";
+					$displayContent+=" button  -w 50 -ann \"Run single Attr for selected objects . \"  -label \"setAttr\"  -command  \"tjh_batch_attr_set___runSingleAttr tjh_batch_attr_set_textField_showValuesFromSelected"+($id)+" tjh_batch_attr_set_textField_showValuesFromSelected"+($id)+"Value\" ;"; 		
+					
+					$id++;
+				}//toggle open
+			}//for end
+		
+		
+		}//end main for 
+		break;
+
+
+
+	}//switch end
+
+	$displayContent+=" setParent ..;\n 	showWindow tjh_batch_attr_set_showValue_window;\n";
+	
+
+	print $displayContent;
+		
+	eval $displayContent;
+	
+	window  -e   -widthHeight 720 300 tjh_batch_attr_set_showValue_window;
+
+}
+
+
+
+
+global proc tjh_batch_attr_set_textField_getAllValueFromSelected()
+{
+
+	string $selects[];$selects = ` ls -sl `;
+	string $sel;
+	
+	//string $floatValue = ` textField -q -text  $attrValueTextFieldUI `;
+	string $attrArrays[];
+	string $valueArrays[];	
+
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num ;
+
+	//float int boolean enum  attrs
+	for($i=0;$i<$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;$i++)
+	{	
+		string $attr = ` textField -q -text ("tjh_batch_attr_set_textField_float"+($i+1)) `;
+		tokenize $attr "." $attrArrays;
+	
+		if(` objExists ($selects[0]+"."+$attr) `)
+		{		
+			string $attrType= ` getAttr -type ($selects[0]+"."+$attr)`;
+			//when single attr
+			if(size($attrArrays)==1  )
+			{
+
+				if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2")
+				{	
+					float $floatValues[];
+					string $floatToStringValue = "";
+					
+						$floatValues=  ` getAttr ($selects[0]+"."+$attr)`;//local node attr
+						for($j = 0 ;$j<size($floatValues);$j++)
+						{
+							if($j==0)$floatToStringValue +=$floatValues[$j];
+							if($j>0)$floatToStringValue +=" "+$floatValues[$j];
+						}
+						textField -e -text $floatToStringValue ("tjh_batch_attr_set_textField_float"+($i+1)+"Value") ;
+						print ("\n Get "+$selects[0]+"."+$attr+" attribute ok !");
+
+						continue;
+
+					
+					
+				}else { //other attr types
+					
+					string $stringValue;
+						$stringValue=  ` getAttr ($selects[0]+"."+$attr)`;
+						textField -e -text  $stringValue ("tjh_batch_attr_set_textField_float"+($i+1)+"Value") ;
+						print ("\n Get "+$selects[0]+"."+$attr+" attribute ok !");
+
+						continue;
+					
+				}		
+			}
+		}//else{ warning ("\n "+($selects[0]+"."+$attr)+"  nodes or global attr not  exists! ");}	
+		
+			
+		// when global attr for example: default.samples ==============================
+		if(` objExists $attr`  )
+		{
+			string $attrType= ` getAttr -type $attr `;
+			if(size($attrArrays)==2 ) 		
+			{ 
+				
+				if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2")
+				{	
+					float $floatValues[];
+					string $floatToStringValue = "";
+					
+						$floatValues=  ` getAttr $attr`;//local node attr
+						for($j = 0 ;$j<size($floatValues);$j++)
+						{
+							if($j==0)$floatToStringValue +=$floatValues[$j];
+							if($j>0)$floatToStringValue +=" "+$floatValues[$j];
+						}
+						textField -e -text $floatToStringValue ("tjh_batch_attr_set_textField_float"+($i+1)+"Value") ;
+						print ("\n Get "+$attr+" attribute ok !");
+
+						continue;
+
+					
+					
+				}else { //other attr types
+					
+					string $stringValue;
+						$stringValue=  ` getAttr $attr`;
+						textField -e -text  $stringValue ("tjh_batch_attr_set_textField_float"+($i+1)+"Value") ;
+						print ("\n Get "+$attr+" attribute ok !");
+
+						continue;
+					
+				}
+			};	
+		
+		}//else{ warning ("\n  "+$attr+"  nodes or global attr not  exists! ");}
+	}//main for cycle end.	
+}
+
+
+
+global proc tjh_batch_attr_set_textField_getValueFromSelected(string $attrTextFieldUI,string $attrValueTextFieldUI)
+{
+
+	string $selects[];$selects = ` ls -sl `;
+	string $sel;
+	string $attr = ` textField -q -text  $attrTextFieldUI `;
+	//string $floatValue = ` textField -q -text  $attrValueTextFieldUI `;
+	string $attrArrays[];
+	string $valueArrays[];
+	tokenize $attr "." $attrArrays;
+	//tokenize $floatValue " " $valueArrays;
+
+	if(` objExists ($selects[0]+"."+$attr) `)
+	{		
+		string $attrType= ` getAttr -type ($selects[0]+"."+$attr)`;
+		//when single attr
+		if(size($attrArrays)==1  )
+		{
+
+			if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2" )
+			{	
+				float $floatValues[];
+				string $floatToStringValue = "";
+				
+					$floatValues=  ` getAttr ($selects[0]+"."+$attr)`;//local node attr
+					for($j = 0 ;$j<size($floatValues);$j++)
+					{
+						if($j==0)$floatToStringValue +=$floatValues[$j];
+						if($j>0)$floatToStringValue +=" "+$floatValues[$j];
+					}
+					textField -e -text $floatToStringValue $attrValueTextFieldUI ;
+					print ("\n Get "+$selects[0]+"."+$attr+" attribute ok !");
+
+					return;
+
+				
+				
+			}else { //other attr types
+				
+				string $stringValue;
+					$stringValue=  ` getAttr ($selects[0]+"."+$attr)`;
+					textField -e -text  $stringValue $attrValueTextFieldUI ;
+					print ("\n Get "+$selects[0]+"."+$attr+" attribute ok !");
+
+					return;
+				
+			}		
+		}
+	}//else{ warning ("\n "+($selects[0]+"."+$attr)+"  nodes or global attr not  exists! ");}	
+	
+		
+	// when global attr for example: default.samples ==============================
+	if(` objExists $attr`  )
+	{
+		string $attrType= ` getAttr -type $attr `;
+		if(size($attrArrays)==2 ) 		
+		{ 
+			
+			if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2")
+			{	
+				float $floatValues[];
+				string $floatToStringValue = "";
+				
+					$floatValues=  ` getAttr $attr`;//local node attr
+					for($j = 0 ;$j<size($floatValues);$j++)
+					{
+						if($j==0)$floatToStringValue +=$floatValues[$j];
+						if($j>0)$floatToStringValue +=" "+$floatValues[$j];
+					}
+					textField -e -text $floatToStringValue $attrValueTextFieldUI ;
+					print ("\n Get "+$attr+" attribute ok !");
+
+					return;
+
+				
+				
+			}else { //other attr types
+				
+				string $stringValue;
+					$stringValue=  ` getAttr $attr`;
+					textField -e -text  $stringValue $attrValueTextFieldUI ;
+					print ("\n Get "+$attr+" attribute ok !");
+
+					return;
+				
+			}
+		};	
+	
+	}//else{ warning ("\n  "+$attr+"  nodes or global attr not  exists! ");}
+	
+}
+
+
+
+
+global proc tjh_batch_attr_set_textField_insertValueMethod(string $text,string $textField)
+{
+	
+	
+	if($text == "")$text = "0";	
+
+	//save old
+	eval("global string $oldSave_"+$textField+";if($oldSave_"+$textField+"==\"\")$oldSave_"+$textField+" = "+$text+";");
+	//eval("print $oldSave_"+$textField+";");	
+
+	textField -e -text $text $textField;
+	print "\nok!";
+}
+
+
+
+global proc tjh_batch_attr_set_textField_MultiplyMethodA(string $multiplyValue,string $textField)
+{
+	
+	string $text=` textField -q -text $textField `;
+	if($text == "")$text = "0";	
+
+	//save old
+	eval("global string $oldSave_"+$textField+";if($oldSave_"+$textField+"==\"\")$oldSave_"+$textField+" = "+$text+";");
+	//eval("print $oldSave_"+$textField+";");
+
+	
+
+	$text = "("+$text+"*"+$multiplyValue+")";
+	if($text == "")$text = "1";
+	textField -e -text $text $textField;
+	print "\nok!";
+}
+
+global proc tjh_batch_attr_set_textField_MultiplyMethodC(string $multiplyValue,string $textField)
+{
+	string $text=` textField -q -text $textField `;
+	if($text == "")$text = "0";
+
+	//tjh_batch_attr_set_textField_randClear($textField);
+
+	//save old
+	eval("global string $oldSave_"+$textField+";if($oldSave_"+$textField+"==\"\")$oldSave_"+$textField+" = \""+$text+"\";");
+	//eval("print $oldSave_"+$textField+";");
+	string $valueArray[];
+	 tokenize $text " " $valueArray ;
+	//if (size($valueArray) == 3)
+	//{
+		$text = "("+$valueArray[0]+"*"+$multiplyValue+") ("+$valueArray[1]+"*"+$multiplyValue+") ("+$valueArray[2]+"*"+$multiplyValue+")";
+		textField -e -text $text $textField;
+	//}
+	
+}
+
+global proc tjh_batch_attr_set_textField_randMethodA(string $textField)
+{
+	
+	string $text=` textField -q -text $textField `;
+	if($text == "")$text = "0";	
+
+	//save old
+	eval("global string $oldSave_"+$textField+";if($oldSave_"+$textField+"==\"\")$oldSave_"+$textField+" = "+$text+";");
+	//eval("print $oldSave_"+$textField+";");
+
+	
+
+	$text = "(rand("+$text+"))";
+	if($text == "")$text = "1";
+	textField -e -text $text $textField;
+	print "\nok!";
+}
+
+global proc tjh_batch_attr_set_textField_randMethodB(string $textField)
+{
+	string $text=` textField -q -text $textField `;
+	if($text == "")$text = "0";
+
+	//tjh_batch_attr_set_textField_randClear($textField);
+
+	//save old
+	eval("global string $oldSave_"+$textField+";if($oldSave_"+$textField+"==\"\")$oldSave_"+$textField+" = "+$text+";");
+	//eval("print $oldSave_"+$textField+";");	
+
+	$text = "(rand(0,"+$text+"))";	
+	textField -e -text $text $textField;
+}
+
+global proc tjh_batch_attr_set_textField_randMethodC(string $textField)
+{
+	string $text=` textField -q -text $textField `;
+	if($text == "")$text = "0";
+
+	//tjh_batch_attr_set_textField_randClear($textField);
+
+	//save old
+	eval("global string $oldSave_"+$textField+";if($oldSave_"+$textField+"==\"\")$oldSave_"+$textField+" = \""+$text+"\";");
+	//eval("print $oldSave_"+$textField+";");
+	string $valueArray[];
+	 tokenize $text " " $valueArray ;
+	//if (size($valueArray) == 3)
+	//{
+		$text = "(rand("+$valueArray[0]+")) (rand("+$valueArray[1]+")) (rand("+$valueArray[2]+"))";
+		textField -e -text $text $textField;
+	//}
+	
+}
+
+global proc tjh_batch_attr_set_textField_randMethodD(string $textField)
+{
+	string $text=` textField -q -text $textField `;
+	if($text == "")$text = "0";
+
+	//tjh_batch_attr_set_textField_randClear($textField);
+
+	//save old
+	eval("global string $oldSave_"+$textField+";if($oldSave_"+$textField+"==\"\")$oldSave_"+$textField+" = \""+$text+"\";");
+	//eval("print $oldSave_"+$textField+";");
+	string $valueArray[];
+	 tokenize $text " " $valueArray ;
+	//if (size($valueArray) == 3)
+	//{
+		$text = "(rand(-"+$text+","+$text+"))";
+		textField -e -text $text $textField;
+	//}
+	
+}
+
+global proc tjh_batch_attr_set_textField_save(string $textField)
+{
+	
+	//eval("global string $oldSave_"+$textField+";");
+	string $cmd = "global string $oldSave_"+$textField+";";	
+	//$cmd += "if($text == \"\")$text = \"0\";";
+	$cmd += " $oldSave_"+$textField+"= ` textField -q -text "+$textField+"`;";
+	eval($cmd);
+	
+}
+
+
+
+global proc tjh_batch_attr_set_textField_restore(string $textField)
+{
+	
+	//eval("global string $oldSave_"+$textField+";");
+	string $cmd = "global string $oldSave_"+$textField+";";
+	$cmd += "string $text =  $oldSave_"+$textField+";";
+	//$cmd += "if($text == \"\")$text = \"0\";";
+	$cmd += "textField -e -text $text "+$textField+";";
+	eval($cmd);
+	
+}
+
+
+
+
+global proc tjh_batch_attr_get__selectNode()
+{
+
+	string $selects[] = `ls -sl`;		
+	string $type = ` nodeType $selects[0] ` ;
+	textField -e -text $type tjh_batch_attr_set__textField__nodeType_to_selected ;
+		
+}
+
+global proc tjh_batch_attr_get__selectName()
+{
+
+	string $selects[] = `ls -sl`;		
+	//string $type = ` nodeType $selects[0] ` ;
+	textField -e -text $selects[0] tjh_batch_attr_set__textField__name_to_selected ;
+}
+
+
+//get and set the attribute from selected channelbox.
+global proc tjh_batch_attr_getAttrFrom__selectChannelBox(string $toTextField)
+{
+	string $attr =` channelBox -q -sma mainChannelBox `;
+	textField -e -text $attr $toTextField ;
+
+}
+
+global proc tjh_batch_attr_set__select(string $method)
+{
+	
+	string $selects[];
+	int $HierarchyToggle = ` checkBox -q -v tjh_batch_attr_set__checkBox__HierarchyToggle `;
+	int $SelectedToggle = ` checkBox -q -v  tjh_batch_attr_set__checkBox__SelectedToggle `;
+	//int $SelectedToggle = 0;
+	
+	if($method =="nodetype")
+	{
+		string $nodetype = ` textField -q -text tjh_batch_attr_set__textField__nodeType_to_selected `;
+		if(size($nodetype)>0 && $nodetype != "(Node Type: mesh)")
+		{
+			
+			if($HierarchyToggle==0 && $SelectedToggle == 0) select -r -ne ` ls -type $nodetype `;
+			if($HierarchyToggle==1 && $SelectedToggle == 0) select -r -ne ` ls -dag  -type $nodetype `;
+			if($HierarchyToggle==0 || $HierarchyToggle==1  && $SelectedToggle == 1 ) 			
+			{
+				string $selTemp[];$selTemp = ` listConnections -type $nodetype `;
+				if(size($selTemp)==0){	select -r -ne ` ls  -sl  -dag  -type  $nodetype `;}//shape node type :mesh nurbsSurface
+				if(size($selTemp)>0){	select -r -ne ` listConnections -type $nodetype `;}//cluster 
+			}
+			
+			
+			//if($HierarchyToggle==0 && $SelectedToggle == 0)select -r ` ls -type $nodetype `;
+			//if($HierarchyToggle==0 && $SelectedToggle == 1)select -r  ` ls -sl -type $nodetype  `;
+			//if($HierarchyToggle==1 && $SelectedToggle == 0)select -r  ` ls -dag -type $nodetype `;
+			//if($HierarchyToggle==1 && $SelectedToggle == 1)select -r  ` ls -dag -sl -type $nodetype  `;
+			
+			 
+		}else{warning ("\n  node type textField is not set value,please set first !");return;}
+	}
+
+	if($method =="name")
+	{
+		string $name = ` textField -q -text tjh_batch_attr_set__textField__name_to_selected `;
+		if(size($name)>0 && $name != "(Name: abc)")
+		{
+			if($HierarchyToggle==0 && $SelectedToggle == 0)select -r -ne ` ls ("*"+ $name +"*") `;
+			if($HierarchyToggle==0 && $SelectedToggle == 1)select -r -ne ` ls -sl ("*"+ $name +"*")  `;
+			if($HierarchyToggle==1 && $SelectedToggle == 0)select -r -ne ` ls -dag ("*"+ $name +"*") `;
+			if($HierarchyToggle==1 && $SelectedToggle == 1)select -r -ne ` ls -dag -sl ("*"+ $name +"*")  `;
+			
+
+		}else{warning ("\n  name textField is not set value,please set first !");return;}
+	}
+}
+
+global proc  tjh_batch_attr_set___runSingleAttr(string $attrTextFieldUI,string $attrValueTextFieldUI)
+{
+
+	string $selects[];$selects = ` ls -sl `;
+	string $sel;
+	string $attr = ` textField -q -text  $attrTextFieldUI `;
+	string $floatValue = ` textField -q -text  $attrValueTextFieldUI `;
+	string $attrArrays[];
+	string $valueArrays[];
+	tokenize $attr "." $attrArrays;
+	tokenize $floatValue " " $valueArrays;
+
+	if(size($selects)>0)
+	{	
+		
+		for($sel in $selects)//main for cycle
+		{
+			//add custom attibutes for selected nodes
+			if($valueArrays[0]=="Delete_Attr"||$valueArrays[0]=="Add_Vector"||$valueArrays[0]=="Add_Int"||$valueArrays[0]=="Add_String"||$valueArrays[0]=="Add_Float"||$valueArrays[0]=="Add_Boolean"||$valueArrays[0]=="Add_Enum")
+			{
+				tjh_batch_attr_set___Add_Attr_cmd  $attrTextFieldUI  $sel;
+			}else{
+
+				
+				
+				if(size($attrArrays)== 1)//for obj.attr setting
+				{	
+					if ( ` objExists  ($sel+"."+$attr) `)
+					{					
+						if($floatValue  != ""  )
+						{
+							
+							string $attrType = ` getAttr -type ($sel+"."+$attr)`;
+							string $cmd="";
+
+							if($attrType == "string")
+							{
+								$cmd="setAttr  -type \"string\" "+$sel+"."+$attr+" \""+$floatValue+"\";";
+							}else if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2")
+							{	
+								string $floatToStringValue = "";
+								for($j = 0 ;$j<size($valueArrays);$j++)
+								{
+									if($j==0)$floatToStringValue +=$valueArrays[$j];
+									if($j>0)$floatToStringValue +=" "+$valueArrays[$j];
+								}
+								$cmd="setAttr "+$sel+"."+$attr+" -type "+$attrType+" "+$floatToStringValue+" ;";
+							}else {
+								$cmd="setAttr "+$sel+"."+$attr+" "+$floatValue+";";
+							}
+
+							eval $cmd;
+							print ("\n set "+$sel+"."+$attr+" attribute ok !");
+
+						}else{warning ("\n  float type: "+$attr+" is not set value,please set first !");break;}
+					}
+
+					
+				}else if(size($attrArrays)>= 2)//for global attr setting
+				{
+					if (` objExists  $attr `)
+					{
+						
+						string $attrType = ` getAttr -type $attr `;
+						string $cmd="";
+						
+						if($floatValue  != "")
+						{
+
+							if($attrType == "string")
+							{
+								$cmd="setAttr  -type \"string\" "+$attr+" \""+$floatValue+"\";";
+							}else if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2")
+							{	
+								string $floatToStringValue = "";
+								for($j = 0 ;$j<size($valueArrays);$j++)
+								{
+									if($j==0)$floatToStringValue +=$valueArrays[$j];
+									if($j>0)$floatToStringValue +=" "+$valueArrays[$j];
+								}
+								$cmd="setAttr "+$attr+" -type "+$attrType+" "+$floatToStringValue+" ;";
+							}else {
+								$cmd="setAttr "+$attr+" "+$floatValue+";";
+							}
+							eval $cmd;						
+							print ("\n set "+$attr+" attribute ok !");
+
+						}else{warning ("\n  float type: "+$attr+" is not set value,please set first !");}
+					}
+				//break;
+
+				}
+			}
+				
+		}//for selected end
+	
+	
+	
+	
+	}else if (size($selects)==0 ) // if nothing selected  and set the full name attribute with dot "."
+	{
+
+		if ($attr != "" && ` objExists  $attr `)
+		{
+			
+			string $attrType = ` getAttr -type $attr `;
+			string $cmd="";
+			
+			if($floatValue  != "")
+			{
+
+				if($attrType == "string")
+				{
+					$cmd="setAttr  -type \"string\" "+$attr+" \""+$floatValue+"\";";
+				}else if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2")
+				{	
+					string $floatToStringValue = "";
+					for($j = 0 ;$j<size($valueArrays);$j++)
+					{
+						if($j==0)$floatToStringValue +=$valueArrays[$j];
+						if($j>0)$floatToStringValue +=" "+$valueArrays[$j];
+					}
+					$cmd="setAttr "+$attr+" -type "+$attrType+" "+$floatToStringValue+" ;";
+				}else {
+					$cmd="setAttr "+$attr+" "+$floatValue+";";
+				}
+				eval $cmd;						
+				print ("\n set "+$attr+" attribute ok !");
+
+			}else{warning ("\n  float type: "+$attr+" is not set value,please set first !");}
+		}			
+
+	} //end else if 
+	//print "\nset attribute ok !";
+
+}
+
+
+global proc tjh_batch_attr_set__run(string $method) // "selected" | "nodetype" |"name"
+{
+	string $selects[];$selects = ` ls -sl `;
+	int $HierarchyToggle = ` checkBox -q -v tjh_batch_attr_set__checkBox__HierarchyToggle `;
+	int $SelectedToggle = ` checkBox -q -v  tjh_batch_attr_set__checkBox__SelectedToggle `;	
+
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num ;	
+
+	string $sel;
+	
+	if(size($selects)>0)
+	{
+		for($sel in $selects)//main for cycle
+		{
+			//float int boolean enum  attrs
+			for($i=0;$i<$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;$i++)
+			{
+				
+				int $toggle = ` checkBox -q  -v ("tjh_batch_attr_set_checkBox_float"+($i+1)) `;
+				string $attr = ` textField -q -text  ("tjh_batch_attr_set_textField_float"+($i+1)) `;				
+				string $attrArrays[];
+				int $attrCount =` tokenize $attr  "." $attrArrays `;
+
+
+				string  $floatValue= ` textField -q -text ("tjh_batch_attr_set_textField_float"+($i+1)+"Value") `;
+				string $valueArray[];
+				int $valueCount = ` tokenize $floatValue " " $valueArray `;
+
+				//judge the toggle 
+				if( $toggle == 1 ) 
+				{
+				
+					////////////////////add custom attributes for selected nodes//////////////////////////////
+					if( $valueArray[0]=="Delete_Attr"||$valueArray[0]=="Add_Vector"||$valueArray[0]=="Add_Int"||$valueArray[0]=="Add_String"||$valueArray[0]=="Add_Float"||$valueArray[0]=="Add_Boolean"||$valueArray[0]=="Add_Enum")
+					{
+						tjh_batch_attr_set___Add_Attr_cmd  ("tjh_batch_attr_set_textField_float"+($i+1))  $sel;
+					}else{
+
+
+						
+						
+						///////////////////edit attributes ////////////////////////////////////////////
+						if($attrCount==1)//for object's attr
+						{					
+							
+							if ($attr != "" && ` objExists  ($sel+"."+$attr) ` )
+							{
+								
+								string $attrType = ` getAttr -type ($sel +"."+$attr) `;
+								string $cmd="";
+								
+								if($floatValue  != "" )
+								{
+									
+									if($attrType == "string")
+									{
+										$cmd="setAttr  -type \"string\" "+$sel+"."+$attr+" \""+$floatValue+"\";";
+									}else if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2")
+									{	
+										string $floatToStringValue = "";
+										for($j = 0 ;$j<size($valueArray);$j++)
+										{
+											if($j==0)$floatToStringValue +=$valueArray[$j];
+											if($j>0)$floatToStringValue +=" "+$valueArray[$j];
+										}
+										$cmd="setAttr "+$sel+"."+$attr+" -type "+$attrType+" "+$floatToStringValue+" ;";
+									}else {
+										$cmd="setAttr "+$sel+"."+$attr+" "+$floatValue+";";
+									}
+
+									eval $cmd;
+									print ("\n set "+$sel+"."+$attr+" attribute ok !");
+
+								}else{
+									warning ("\n  float type: "+$attr+" is not set value,please set first !");
+								}
+							
+
+							}
+						}
+						
+						if($attrCount>= 2)//for global attr setting
+						{
+							if ($attr != "" && ` objExists  $attr ` &&  $toggle == 1)
+							{
+								
+								string $attrType = ` getAttr -type $attr `;
+								string $cmd="";
+								
+								if($floatValue  != "")
+								{
+
+									if($attrType == "string")
+									{
+										$cmd="setAttr  -type \"string\" "+$attr+" \""+$floatValue+"\";";
+									}else if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2")
+									{	
+										string $floatToStringValue = "";
+										for($j = 0 ;$j<size($valueArray);$j++)
+										{
+											if($j==0)$floatToStringValue +=$valueArray[$j];
+											if($j>0)$floatToStringValue +=" "+$valueArray[$j];
+										}
+										$cmd="setAttr "+$attr+" -type "+$attrType+" "+$floatToStringValue+" ;";
+									}else {
+										$cmd="setAttr "+$attr+" "+$floatValue+";";
+									}
+									eval $cmd;						
+									print ("\n set "+$attr+" attribute ok !");
+
+								}else{warning ("\n  float type: "+$attr+" is not set value,please set first !");}
+							}
+
+						//break;
+						}
+
+					}//edit attr end
+
+				}//judge the toggle end
+
+								
+			}//for end
+
+			
+			
+		}//main for end
+	
+	
+	}else if (size($selects)==0 ) // if nothing selected  and set the full name attribute with dot "."
+	{
+
+			//float int boolean enum  attrs
+			for($i=0;$i<$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;$i++)
+			{
+				
+				string $attr = ` textField -q -text  ("tjh_batch_attr_set_textField_float"+($i+1)) `;
+
+				int $toggle = ` checkBox -q  -v ("tjh_batch_attr_set_checkBox_float"+($i+1)) `;
+				
+				string  $floatValue= ` textField -q -text ("tjh_batch_attr_set_textField_float"+($i+1)+"Value") `;
+				string $valueArray[];
+				int $valueCount = ` tokenize $floatValue " " $valueArray `;
+				string $attrType = ` getAttr -type $attr `;
+				string $cmd="";
+		
+
+
+				if ($attr != "" && ` objExists  $attr ` &&  $toggle == 1)
+				{
+					string  $floatValue= ` textField -q -text ("tjh_batch_attr_set_textField_float"+($i+1)+"Value") `;	
+					
+					if($floatValue  != "")
+					{
+						if($attrType == "string")
+						{
+							$cmd="setAttr  -type \"string\" "+$attr+" \""+$floatValue+"\";";
+						}else if($attrType == "long2" ||$attrType == "long3" ||$attrType == "short2" ||$attrType == "short3" ||$attrType == "float2" ||$attrType == "float3" || $attrType == "double3" || $attrType == "double2")
+						{	
+							string $floatToStringValue = "";
+							for($j = 0 ;$j<size($valueArray);$j++)
+							{
+								if($j==0)$floatToStringValue +=$valueArray[$j];
+								if($j>0)$floatToStringValue +=" "+$valueArray[$j];
+							}
+							$cmd="setAttr "+$attr+" -type "+$attrType+" "+$floatToStringValue+" ;";
+						}else {
+							$cmd="setAttr "+$attr+" "+$floatValue+";";
+
+						}
+						eval $cmd;						
+						print ("\n set "+$attr+" attribute ok !");
+						
+
+					}else{warning ("\n  float type: "+$attr+" is not set value,please set first !");}
+
+					
+				}
+				
+				
+			}			
+
+	} //end else if 
+	//print "\nset attribute ok !";
+
+}
+
+
+global proc int tjh_batch_attr_set_attributesTest(string $attr)
+{
+	string $tempArrayAttr[];
+	int $attrCount = ` tokenize $attr  "." $tempArrayAttr ` ;
+return $attrCount;
+}
+
+
+
+
+/////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+// /                       preset management system                      ///
+/////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+
+
+//UI
+global proc tjh_batch_attr_set_Preset()
+{
+	// read initial preset file data
+	tjh_batch_attr_set_read_preset_initial_readDataFromPresetFile;
+
+	if (` windowPref -exists tjh_batch_attr_set_PresetWindow `)
+            windowPref -remove  tjh_batch_attr_set_PresetWindow;     
+
+                  
+        if (` window -exists tjh_batch_attr_set_PresetWindow `)
+       deleteUI tjh_batch_attr_set_PresetWindow;
+
+
+	window 
+		//-bgc 0.276 0.307 0.426	
+		-rtf 1 -w 150 -h 200  
+		tjh_batch_attr_set_PresetWindow;
+
+	columnLayout -columnAlign "center";
+
+		text  -w 150  -fn "boldLabelFont"  -al "center" -l ("\n  Preset Management \n");
+		text -ww 1 -w 150   -al "center" -l " double click to load preset.  ";
+
+		string $files[];$files = ` tjh_batch_attr_set_Preset__getPresetNames `;
+			
+		global string $tjh_batch_attr_set_PresetTextScrollList;
+		$tjh_batch_attr_set_PresetTextScrollList=` textScrollList -w 150 -h 300 -numberOfRows 8 -allowMultiSelection false -doubleClickCommand "tjh_batch_attr_set_read_preset" `;
+
+		//text  -w 300   -al "center" -l ("   ");
+
+
+		//refresh the list for textScrollList
+		string $temp;
+
+		//change the textScrollList constant.
+		textScrollList -e -ra $tjh_batch_attr_set_PresetTextScrollList;//clear old list
+
+		string $cmd="textScrollList -e "; 
+
+		for($temp in $files){$cmd+=" -append \""+$temp+"\" ";};
+
+		$cmd+= $tjh_batch_attr_set_PresetTextScrollList+";";
+		$cmd+= "popupMenu -parent "+$tjh_batch_attr_set_PresetTextScrollList+";";
+		$cmd+= "menuItem  -label \"Save...\" -c tjh_batch_attr_set_create_preset_window ;";
+		$cmd+= "menuItem  -label \"Load\" -c tjh_batch_attr_set_read_preset ;";
+		$cmd+= "menuItem  -label \"Delete\" -c tjh_batch_attr_set_delete_preset ;";
+
+		eval $cmd;
+
+		
+		button -al "center" -bgc 0.1 0.5 0.5  -w 150 -ann "create Multi blank Attrs..."  -label "create Multi blank Attrs... "  -command  "tjh_batch_attr_set__cmd_setting";
+
+		rowColumnLayout -numberOfRows 1;
+
+			button  -bgc 0.1 0.3 0.5 -al "center"  -w 50 -ann "create preset"  -label "Save "  -command  "tjh_batch_attr_set_create_preset_window ";
+			button  -bgc 0.1 0.3 0.4 -al "center"  -w 50 -ann "Load preset"  -label "Load "  -command  "tjh_batch_attr_set_read_preset";
+			button  -bgc 0.1 0.3 0.3 -al "center"  -w 50 -ann "Delete preset"  -label "Delete"   -command  "tjh_batch_attr_set_delete_preset";
+
+
+showWindow tjh_batch_attr_set_PresetWindow;
+
+}
+
+
+		    
+global proc string[] tjh_batch_attr_set_Preset__getPresetNames()
+{ 
+	
+	global string $tjh_batch_attr_set_Preset_datas[];	
+	global string $tjh_batch_attr_set_Preset_NAMES[];
+
+	string $presetNames[];
+	int $id = 0;
+
+	for($i = 0; $i<size($tjh_batch_attr_set_Preset_datas); $i++)
+	{
+		if($tjh_batch_attr_set_Preset_datas[$i] == "<preset>")
+		{
+			$presetNames[$id] =  $tjh_batch_attr_set_Preset_datas[$i+1];
+			$id++;
+		}
+
+	}
+	$tjh_batch_attr_set_Preset_NAMES = $presetNames;
+return $presetNames;
+}
+
+
+global proc tjh_batch_attr_set_create_preset_window()
+{
+	global string $tjh_batch_attr_set_Preset_datas[];		
+	
+	if (`windowPref -exists tjh_batch_attr_set_PresetSaveWindow `)
+		    windowPref -remove  tjh_batch_attr_set_PresetSaveWindow;     
+
+			  
+			  if (`window -exists tjh_batch_attr_set_PresetSaveWindow `)
+			  deleteUI tjh_batch_attr_set_PresetSaveWindow;
+
+
+	window  -menuBar true -rtf 1  -w 200 -h 50 tjh_batch_attr_set_PresetSaveWindow;
+
+	columnLayout;	
+
+	//separator -h 10 -w 200;
+
+	text -w 200 -h 30 -al "left" -l "  Preset Name:";
+
+	string $textField = ` textField -w 200  ` ;
+
+	string $savecmd = "string $name =` textField -q -text  "+$textField+"`;tjh_batch_attr_set_Preset_management \"save\" $name ;";
+
+	string $deletecmd = " deleteUI tjh_batch_attr_set_PresetSaveWindow;";
+
+	separator -style "none" -h 10 -w 200;
+
+	rowColumnLayout -numberOfColumns 2
+			-columnWidth 1 100
+			-columnWidth 2 100;
+		
+		button  -bgc 0.1 0.3 0.5 -l "save" -c $savecmd;
+		button  -bgc 0.1 0.3 0.4 -l "Close" -c $deletecmd;
+		setParent ..;
+	showWindow;
+
+}
+
+
+
+global proc tjh_batch_attr_set_read_preset()
+
+{
+	global string $warning_select;
+
+	global string $tjh_batch_attr_set_PresetTextScrollList;
+	string $selectItem[]; $selectItem = ` textScrollList -q -si $tjh_batch_attr_set_PresetTextScrollList `;
+	
+
+	if($selectItem[0]!="")
+	{
+		tjh_batch_attr_set_Preset_management "load"  $selectItem[0];
+
+	}else{warning $warning_select;};
+
+}
+
+
+
+
+global proc tjh_batch_attr_set_delete_preset()
+
+{
+	global string $warning_select;
+	global string $tjh_batch_attr_set_PresetTextScrollList;
+	string $selectItem[]; $selectItem = ` textScrollList -q -si $tjh_batch_attr_set_PresetTextScrollList `;
+
+		
+	if (`windowPref -exists tjh_batch_attr_set_PresetDeleteWindow `)
+		    windowPref -remove  tjh_batch_attr_set_PresetDeleteWindow;     
+
+			  
+			  if (`window -exists tjh_batch_attr_set_PresetDeleteWindow `)
+			  deleteUI tjh_batch_attr_set_PresetDeleteWindow;
+
+
+	window  -menuBar true -rtf 1  -w 230 -h 50 tjh_batch_attr_set_PresetDeleteWindow;
+
+		columnLayout;	
+
+		//separator -h 10 -w 200;
+
+		text -w 230 -h 30 -al "left" -l "   Are you sure to delete the current preset !!!";		
+
+		string $delCmd = "tjh_batch_attr_set_Preset_management \"delete\" \""+$selectItem[0]+"\";";
+		string $deletecmdUI = " deleteUI tjh_batch_attr_set_PresetDeleteWindow";
+
+		separator -style "none" -h 10 -w 230;
+
+		rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 100
+				-columnWidth 2 100;
+			
+			button -bgc 0.1 0.3 0.5 -l "Yes" -c ($delCmd+$deletecmdUI);
+			button -bgc 0.1 0.3 0.4 -l "No" -c $deletecmdUI;
+			setParent ..;
+	showWindow;
+
+		
+}
+
+
+
+
+
+//menuItems Preset UI updata
+global proc tjh_batch_attr_set_Preset__menuItems()
+{ 
+	
+	global string $tjh_batch_attr_set_Preset_datas[];	
+	global string $tjh_batch_attr_set_NAMES[];
+
+	for($i = 0; $i<size($tjh_batch_attr_set_Preset_datas); $i++)
+	{
+		if($tjh_batch_attr_set_Preset_datas[$i] == "<preset>")
+		menuItem  -label $tjh_batch_attr_set_Preset_datas[$i+1] -c ("tjh_batch_attr_set_Preset_management \"load\"  \""+ $tjh_batch_attr_set_Preset_datas[$i+1]+"\"");
+	}
+
+
+}
+
+
+//menuItems Preset UI window management
+global proc tjh_batch_attr_set_Preset_management__windowUI() //for "save"
+
+{ 
+	global string $tjh_batch_attr_set_Preset_datas[];
+
+		
+	
+		if (`windowPref -exists tjh_batch_attr_set_presetSaveWindow`)
+			    windowPref -remove  tjh_batch_attr_set_presetSaveWindow;     
+
+				  
+				  if (`window -exists tjh_batch_attr_set_presetSaveWindow`)
+				  deleteUI tjh_batch_attr_set_presetSaveWindow;
+
+
+		window  -menuBar true -rtf 1  -w 200 -h 50 tjh_batch_attr_set_presetSaveWindow;
+
+		columnLayout;	
+
+		//separator -h 10 -w 200;
+
+		text -w 200 -h 30 -al "left" -l "  AOV Preset Name:";
+
+		string $textField = ` textField -w 200  ` ;
+
+		string $savecmd = "string $name =` textField -q -text  "+$textField+"`;tjh_batch_attr_set_Preset_management \"save\" $name ;";
+
+		string $closecmd = " deleteUI tjh_batch_attr_set_presetSaveWindow;";
+	
+		separator -style "none" -h 10 -w 200;
+
+		rowColumnLayout -numberOfColumns 2
+				-columnWidth 1 100
+				-columnWidth 2 100;
+			
+			button -l "Save" -c $savecmd;
+			button -l "Cancel" -c $closecmd;
+			setParent ..;
+		showWindow;
+
+
+
+
+
+}
+
+////////////////////////////// core preset operation proc ///////////////////////////
+//                   $method :"load" | "save" | "delete" |  "add_OneBlank_Attr_forCurrentPreset" |  "sub_OneBlank_Attr_forCurrentPreset"             
+
+global proc tjh_batch_attr_set_Preset_management(string $method,string $presetName)
+
+{ 
+	if(size($presetName)==0){warning "preset is empty !"; }
+	
+	
+	global string $tjh_batch_attr_set_Preset_datas[];
+	if(size($tjh_batch_attr_set_Preset_datas)<5 )clear $tjh_batch_attr_set_Preset_datas;
+	
+	//for save tempUI data to memory.
+	global string $tjh_batch_attr_set__tempUIStore[];
+
+	global string $tjh_batch_attr_set_NAMES[];
+		string $oldDatas[];
+	$oldDatas = $tjh_batch_attr_set_Preset_datas;
+	
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;
+	
+	
+	if(size($presetName))
+	{
+		if($method == "load")///////////////////////////////
+		{
+				global string $tjh_batch_attr_set_Preset_datas[];		
+				global string $tjh_batch_attr_set_NAMES[];
+
+				global string $tjh_batch_attr_set__currentSelected_preset;
+				 $tjh_batch_attr_set__currentSelected_preset = $presetName;
+				
+				global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;
+				
+
+				for($i = 0; $i<size($tjh_batch_attr_set_Preset_datas); $i++)
+				{
+					if($tjh_batch_attr_set_Preset_datas[$i] == "<preset>")
+					{
+						if($tjh_batch_attr_set_Preset_datas[$i+1] == $presetName)
+						{
+							
+							
+							$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num = int($tjh_batch_attr_set_Preset_datas[$i+2]);
+							
+
+							//update the main UI ******************
+
+							tjh_batch_attr_set_mainUI;
+
+							//*********************************
+
+							int $newId = 1;
+
+							//load the float int boolean enum  attrs
+							for($k=0;$k<$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;$k++)
+							{
+								
+								checkBox -e  -v (int($tjh_batch_attr_set_Preset_datas[$i+2+$newId])) ("tjh_batch_attr_set_checkBox_float"+($k+1)) ;
+								
+								$newId++;
+								
+								textField -e -text $tjh_batch_attr_set_Preset_datas[$i+2+$newId] ("tjh_batch_attr_set_textField_float"+($k+1)) ;
+								
+								$newId++;	
+
+								textField -e -text $tjh_batch_attr_set_Preset_datas[$i+2+$newId] ("tjh_batch_attr_set_textField_float"+($k+1)+"Value") ;	
+
+								$newId++;	
+								
+								string $cmd = "button -e -bgc  "+$tjh_batch_attr_set_Preset_datas[$i+2+$newId]+" tjh_batch_attr_set_button_colorGrap"+($k+1);
+								eval $cmd;
+								
+								$newId++;
+								
+							}
+
+							
+						}
+					}
+
+				}//main for cycle end.
+			
+		}
+
+		if($method == "insert_OneBlank_Attr_forCurrentPreset" ||$method == "remove_OneBlank_Attr_forCurrentPreset")///////////////////////////////
+		{
+				
+					global string $tjh_batch_attr_set_Preset_datas[];		
+					global string $tjh_batch_attr_set_NAMES[];
+					
+
+					global string $tjh_batch_attr_set__currentSelected_preset;
+					 $tjh_batch_attr_set__currentSelected_preset = $presetName;
+					
+					global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;
+
+					for($i = 0; $i<size($tjh_batch_attr_set_Preset_datas); $i++)
+					{
+						if($tjh_batch_attr_set_Preset_datas[$i] == "<preset>")
+						{
+							if($tjh_batch_attr_set_Preset_datas[$i+1] == $presetName)
+							{
+								
+								int $tempNum = $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;
+
+								//save current UI data to a temp memory .
+								
+								int $tempStoreId = 0;	
+								clear $tjh_batch_attr_set__tempUIStore;
+
+								for($k=0;$k<$tempNum;$k++)
+								{
+									if(` checkBox -ex ("tjh_batch_attr_set_checkBox_float"+($k+1))`)
+									$tjh_batch_attr_set__tempUIStore[$tempStoreId]=` checkBox -q  -v  ("tjh_batch_attr_set_checkBox_float"+($k+1)) `;
+									
+									$tempStoreId++;
+									
+									if(` textField -ex ("tjh_batch_attr_set_textField_float"+($k+1))`)
+									$tjh_batch_attr_set__tempUIStore[$tempStoreId]=` textField -q -text  ("tjh_batch_attr_set_textField_float"+($k+1)) `;
+									
+									$tempStoreId++;	
+
+									if(` textField -ex ("tjh_batch_attr_set_textField_float"+($k+1)+"Value")`)
+									$tjh_batch_attr_set__tempUIStore[$tempStoreId]=` textField -q -text  ("tjh_batch_attr_set_textField_float"+($k+1)+"Value") `;	
+
+									$tempStoreId++;	
+									
+									if(` button -ex ("tjh_batch_attr_set_button_colorGrap"+($k+1))`)
+									{
+										float $color[] =` button -q -bgc  ("tjh_batch_attr_set_button_colorGrap"+($k+1)) `;
+										$tjh_batch_attr_set__tempUIStore[$tempStoreId]=$color[0]+" "+$color[1]+" "+$color[2];	
+									}
+									$tempStoreId++;	
+									
+								}	
+													
+
+								
+								//insert a blank attr.*******************************
+								if($method == "insert_OneBlank_Attr_forCurrentPreset")$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num +=1;
+								if($method == "remove_OneBlank_Attr_forCurrentPreset")$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num -=1;
+
+								if($tjh_batch_attr_set__float_int_boolean_enumAttr_create__num < 0)
+								$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num = 0;
+
+
+								//update the main UI ******************
+
+								tjh_batch_attr_set_mainUI;
+
+								//*********************************
+
+
+								//reload temp memory data for current UI.																			
+								$tempStoreId = 0;
+
+								for($k=0;$k<$tempNum;$k++)
+								{
+									if(` checkBox -ex ("tjh_batch_attr_set_checkBox_float"+($k+1))`)
+									 checkBox -e  -v (int($tjh_batch_attr_set__tempUIStore[$tempStoreId]))  ("tjh_batch_attr_set_checkBox_float"+($k+1)) ;
+									
+									$tempStoreId++;
+									
+									if(` textField -ex ("tjh_batch_attr_set_textField_float"+($k+1))`)
+									 textField -e -text $tjh_batch_attr_set__tempUIStore[$tempStoreId] ("tjh_batch_attr_set_textField_float"+($k+1)) ;
+									
+									$tempStoreId++;	
+
+									if(` textField -ex ("tjh_batch_attr_set_textField_float"+($k+1)+"Value")`)
+									 textField -e -text $tjh_batch_attr_set__tempUIStore[$tempStoreId] ("tjh_batch_attr_set_textField_float"+($k+1)+"Value") ;	
+
+									$tempStoreId++;	
+									
+									if(` button -ex ("tjh_batch_attr_set_button_colorGrap"+($k+1))`)
+									{
+										string $cmd = "button -e -bgc  "+$tjh_batch_attr_set__tempUIStore[$tempStoreId]+" tjh_batch_attr_set_button_colorGrap"+($k+1);
+										eval $cmd;
+									}
+									$tempStoreId++;	
+									
+								}
+							}
+						}
+
+					}//main for cycle end.
+				
+		}
+
+		
+
+
+		if($method == "save")////////////////////////////////////
+		{
+			//check presetName exist or not
+			for($i = 0; $i<size($oldDatas); $i++)
+			{			
+
+				if($oldDatas[$i] == "<preset>")
+				{
+					if($oldDatas[$i+1] == $presetName)
+					{
+						$presetName += "__<"+tjh_rand_Namer(6)+">" ;
+					}
+				}
+
+			}//for end
+
+			int $newId = size($tjh_batch_attr_set_Preset_datas);
+
+			$tjh_batch_attr_set_Preset_datas[$newId] = "<preset>";
+			$newId++;
+
+			$tjh_batch_attr_set_Preset_datas[$newId] = $presetName;
+			$newId++;
+			
+			$tjh_batch_attr_set_Preset_datas[$newId] = $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;
+			$newId++;
+				
+			
+			//save the float int boolean enum  attrs
+			for($i=0;$i<$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;$i++)
+			{
+				
+				int $toggle = ` checkBox -q  -v ("tjh_batch_attr_set_checkBox_float"+($i+1)) `;
+				$tjh_batch_attr_set_Preset_datas[$newId] = $toggle;
+				$newId++;
+				
+				string $attr = ` textField -q -text  ("tjh_batch_attr_set_textField_float"+($i+1)) `;
+				$tjh_batch_attr_set_Preset_datas[$newId] = $attr;
+				$newId++;	
+
+				string  $floatValue= ` textField -q -text ("tjh_batch_attr_set_textField_float"+($i+1)+"Value") `;
+				$tjh_batch_attr_set_Preset_datas[$newId] =  $floatValue;
+				$newId++;
+
+
+				float $color[] =` button -q -bgc  ("tjh_batch_attr_set_button_colorGrap"+($i+1)) `;
+				$tjh_batch_attr_set_Preset_datas[$newId] = $color[0]+" "+$color[1]+" "+$color[2];			
+				$newId++;
+								
+				
+			}
+
+			deleteUI tjh_batch_attr_set_PresetSaveWindow;		 
+			tjh_batch_attr_set_Preset__saveDataToPresetFile_And_updateUI;
+
+			//update the preset UI
+
+			tjh_batch_attr_set_Preset;
+			tjh_batch_attr_set_Preset_management "load" $presetName;
+		
+		}
+
+
+		if($method == "delete")////////////////////////////////////
+		{
+			//global string $tjh_batch_attr_set_Preset_datas[];
+			
+
+			string $saveOldPresetDatas[] = $tjh_batch_attr_set_Preset_datas;		
+			
+			clear $tjh_batch_attr_set_Preset_datas;
+			int $newId = 0;
+
+			for($i = 0; $i<size($oldDatas); $i++)
+			{			
+
+				if($oldDatas[$i] == "<preset>" )
+				{
+					if($oldDatas[$i+1] == $presetName && $oldDatas[$i+1] != "<default>" )
+					{
+						int $floatAttrNum = int($oldDatas[$i+2]);					
+						$i += 1+1 +$floatAttrNum*4 ; // save data number 
+					}else{warning "<default> can not be remove ! ";}
+				}
+
+				$tjh_batch_attr_set_Preset_datas[$newId] = $oldDatas[$i];
+				$newId++;
+			}//for end		
+		
+			string $newPresetDatas[] =  $tjh_batch_attr_set_Preset_datas;
+			
+			//updata for menuItems preset
+			tjh_batch_attr_set_Preset__saveDataToPresetFile_And_updateUI;
+
+
+			//update the preset UI
+
+			tjh_batch_attr_set_Preset;
+
+			//load old datas from cache $saveOldPresetDatas and restore old UI datas display;		
+			 clear $tjh_batch_attr_set_Preset_datas;
+			 $tjh_batch_attr_set_Preset_datas = $saveOldPresetDatas;
+
+			 tjh_batch_attr_set_Preset_management "load" $presetName;
+
+			 //restore the new result datas
+			clear $tjh_batch_attr_set_Preset_datas;
+			$tjh_batch_attr_set_Preset_datas = $newPresetDatas;
+
+			if($presetName == "<default>" ){warning "\n <default> can not be remove ! ";}
+
+		}
+        
+	}else{warning "preset is empty !"; }
+}//proc end
+
+
+
+global proc string  tjh_rand_Namer(int $nameLength)
+{
+	string $dict[]={"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"};
+	string $finalName= "";
+	for($i=0;$i<$nameLength;$i++)
+	{
+		$finalName += $dict[int(rand(26))];	
+	}
+
+return $finalName;
+} //tjh_rand_Namer(6);
+
+
+
+global proc tjh_batch_attr_set__toggle_Invert()
+{ 
+	
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;
+	
+	//load the float int boolean enum  attrs
+	for($k=0;$k<$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;$k++)
+	{		
+		int $toggle = ` checkBox -q  -v  ("tjh_batch_attr_set_checkBox_float"+($k+1)) `;
+		if($toggle == 1) checkBox -e  -v 0 ("tjh_batch_attr_set_checkBox_float"+($k+1)) ;
+		if($toggle == 0) checkBox -e  -v 1 ("tjh_batch_attr_set_checkBox_float"+($k+1)) ;
+	
+	}
+	
+}
+
+global proc tjh_batch_attr_set__toggle_all_ON()
+{ 	
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;	
+
+	//load the float int boolean enum  attrs
+	for($k=0;$k<$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;$k++)
+	{		
+		checkBox -e  -v 1 ("tjh_batch_attr_set_checkBox_float"+($k+1)) ;
+	
+	}
+
+}
+
+global proc tjh_batch_attr_set__toggle_all_Off()
+{ 
+	global int $tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;
+
+	//load the float int boolean enum  attrs
+	for($k=0;$k<$tjh_batch_attr_set__float_int_boolean_enumAttr_create__num;$k++)
+	{		
+		checkBox -e  -v 0 ("tjh_batch_attr_set_checkBox_float"+($k+1)) ;
+	
+	}
+}
+
+global proc tjh_batch_attr_set_openPreset()
+{
+	string $ScriptPath = `tjh_whatIs "tjh_batch_attr_set"`;	
+	
+	
+	string $melFileName = $ScriptPath + "/tjh_batch_attr_set.preset.mel";
+
+	system("notepad \""+$melFileName+"\"");
+
+}
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+//			preset system end                 ///
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+
+
+
+
+
+
+//##########################################################################################
+//##############################   create the xpm images    ################################
+//##########################################################################################
+
+global proc string tjh_xpm_data(string $xpm_data[])
+
+{
+string $data="";
+int $lineData=size($xpm_data);
+
+$data+="/* XPM */"+"\n";
+$data+="static char *[] = {"+"\n";
+for($i=0;$i<$lineData;$i++)
+	{
+	$data+="\"";
+	$data+=$xpm_data[$i];
+	$data+="\","+"\n";
+	};
+//print $data;
+$data+="};";
+
+return $data;
+}
+
+global proc tjh_xpm_creator(string $imageDstScriptPath,string $imageName,string $xpm_data[])
+{
+		
+	if( !` filetest -e ($imageDstScriptPath+$imageName)`)
+	{
+		int    $imageDesId=`fopen ($imageDstScriptPath+$imageName) "w"`;
+		fprint $imageDesId (tjh_xpm_data($xpm_data));
+		fclose $imageDesId;
+	}
+}
+
+
+//create the xpm images 
+global proc tjh_batch_attr_set_xpm_creator()
+{
+        string $tjh_batch_attr_set_xpm_title[] = {"360 102 256 2","   c #0A840CD00B5C",".  c #084E096604BF","X  c #0E1A11A916D1","o  c #1459180718E6","O  c #0FC712680D19","+  c #14CA19D82820","@  c #18991E6B31B1","#  c #1C39235339F7","$  c #1D1D21CC277D","%  c #399C3BB2011F","&  c #2CAD304C155E","*  c #2E2E30BF2A2A","=  c #212120871717","-  c #1F1F27024141",";  c #23382C0248EF",":  c #2C67363A5B73",">  c #2DB238AC5EE3",",  c #291E3333548A","<  c #31D138D85ED1","1  c #3A3A3764592C","2  c #355533134B2B","3  c #2E903A306290","4  c #31D23BD56480","5  c #32C33E9669E5","6  c #3B953D7D6598","7  c #3EF341410101","8  c #3D9341971919","9  c #3ABB40C02CAC","0  c #346241096DA6","q  c #397B41CE6E23","w  c #3E694ACA69EA","e  c #364F43FF7335","r  c #38E345EE75A3","t  c #38F0473478E5","y  c #3AE9491676C8","u  c #3B4D4A077CCA","i  c #4C3F14E20040","p  c #4A6C193B058E","a  c #5364151E0011","s  c #53B21B53008C","d  c #5CB91D640037","f  c #577F1941043F","g  c #4C0C1CDD1313","h  c #55EF21DA03BC","j  c #5C8F22CD01F1","k  c #597B23790AB5","l  c #57F525E117F0","z  c #4D2822B513EF","x  c #56B52AA428D8","c  c #54012FF03611","v  c #62B81D4E0000","b  c #69EA1C470000","n  c #63372265009B","m  c #6C87248A0056","M  c #6C9229EC00A7","N  c #661A27820624","B  c #65FC2B951818","V  c #7348259B0000","C  c #74A42B2B005A","Z  c #7B762D78004C","A  c #780C29A306D1","S  c #7DFB308A011F","D  c #7AD030B00B61","F  c #793932921A1A","G  c #74F52DAD1595","H  c #691936B737E8","J  c #7131359529F2","K  c #4A013403490C","L  c #470938FB5644","P  c #5304374B4AAD","I  c #662D3BCA459B","U  c #42ED3CE760B6","Y  c #42F144CD0011","T  c #46E848EA0000","R  c #4B504CDA0009","E  c #43C447470A4A","W  c #4EE050DC0017","Q  c #4DA351FC0C0C","!  c #531954B50007","~  c #56EE58C10000","^  c #5B8E5CDF0011","/  c #56A55B830BF8","(  c #4C0C509D1515",")  c #50D057873030","_  c #5DF0628E0063","`  c #5C7661940A24","'  c #5E9163301A1A","]  c #634F65DC001B","[  c #64916979000F","{  c #6AD66C870004","}  c #6388681F0B30","|  c #6E6D71E60012"," . c #6D17711B0D0D",".. c #732C74F80005","X. c #7660794C0008","o. c #7AF77CDA0005","O. c #75E778860A35","+. c #709B739315AB","@. c #6F8F74542D02","#. c #4F4F4E8451E6","$. c #464644B2690D","%. c #44A64B027AAB","&. c #537E5C717B50","*. c #50EF4FAB71F2","=. c #5ACF647B540E","-. c #57C3642E784F",";. c #5B1B65D068FE",":. c #76674848527F",">. c #6F424F876FC8",",. c #6C04739B50A8","<. c #68F973E37909","1. c #6BC6745B6EB9","2. c #3E044DAC835D","3. c #3F3F505086ED","4. c #41BF4EDA8457","5. c #4A4A4F4F8282","6. c #40DF50B386AA","7. c #429F53318C3B","8. c #46CB587E8ED1","9. c #4B265AB68CBA","0. c #4C4C57578888","q. c #454656879248","w. c #46E758DF95CE","e. c #474759C29898","r. c #490B5A6A95FC","t. c #4A135C859C0C","y. c #489157329325","u. c #578257C987F9","i. c #55105CA198BA","p. c #4C4D5F3CA121","a. c #51515F5FA120","s. c #4DAA607D9EBB","d. c #4F4F60609616","f. c #57F8660E877F","g. c #5630657897F6","h. c #5E5E70709D9D","j. c #4DF76180A4B8","k. c #4F4F6366A8B5","l. c #50AE6353A6CE","z. c #51C8661AACC9","x. c #5363686CAF95","c. c #5BE868A8A834","v. c #549B69B5B2F3","b. c #57536D54B923","n. c #58716DD9B9AC","m. c #59036B96B51F","M. c #5DB371C7B409","N. c #6F195C068CC9","B. c #6BD96B3F94A3","V. c #66BC678CA922","C. c #6A39766AA78F","Z. c #7EBD810F0006","A. c #7D7D80803B3B","S. c #7B35843E6C6C","D. c #7C7C83835797","F. c #7A7A86B9B1CB","G. c #78AB85EC922B","H. c #833F2D080000","J. c #8B442E840000","K. c #843231E700E6","L. c #8C5534400062","P. c #895C359F0863","I. c #857535B61697","U. c #937A35BF0026","Y. c #960438CD00BD","T. c #9AF0364B0030","R. c #9C3D3A6600A9","E. c #96213A230A96","W. c #94EA38C71212","Q. c #A3F63C720048","!. c #AAE73E65003D","~. c #A3A339CC0505","^. c #B2F23E9E0000","/. c #8A8A3DBE2D2D","(. c #955A480D321E","). c #AD0C41330167","_. c #A7BD423706FC","`. c #B41742C700FA","'. c #BC0244FF0055","]. c #BA2347930890","[. c #B0B0474718EC","{. c #B3584E902D67","}. c #A1415EDF1AFB","|. c #92294ED34FFA"," X c #9164594E6F91",".X c #A99A539F4E7B","XX c #97ED6DED5903","oX c #C27246B1001F","OX c #C5B248F60033","+X c #CC424B0B004C","@X c #C7F24AF50C62","#X c #D3204DBE004E","$X c #CED952DD10BB","%X c #C81057322A98","&X c #CD0C64A42828","*X c #D00F78784646","=X c #8630608B8787","-X c #83BD84710001",";X c #86E188CA0000",":X c #8C2A8C8F0008",">X c #89B48B0A0A0A",",X c #8F1E90B90000","<X c #941E945E0001","1X c #977298C90000","2X c #9C2C9C510002","3X c #9959989803C4","4X c #8E4E8ECE1171","5X c #902992AC2FC9","6X c #9F9FA0C00000","7X c #9F9FA0A00A0A","8X c #A0A09F9F0000","9X c #A3FBA40A0000","0X c #AC02AC190008","qX c #A778A81C015E","wX c #B434B43C0006","eX c #BBFBBBF60025","rX c #B749B7C9044D","tX c #B931B99B1845","yX c #AC01ACAC12FE","uX c #ADBCB00A2EA7","iX c #9E9EA2213E3E","pX c #8ED094524EFE","aX c #83D98BE1650F","sX c #A709AB2147E5","dX c #A92997975818","fX c #BFBFC0C0075D","gX c #D00892AF6FA8","hX c #E30D9D1D749F","jX c #DC008EB361F4","kX c #C410C4100025","lX c #C976C9760008","zX c #C3D0C3F60B32","xX c #C2C2C3421414","cX c #8AE0945EB7C2","vX c #9EFE9E1EA787","bX c #B00CB693CEF1","nX c #98C3A2A2C443","mX c #BABAC181D857","MX c #D7B7A7478B6B","NX c #D272B9F9AD4D","BX c #E645AF0E9151","VX c #DE88B2079B9B","CX c #ED32CACAB6E5","ZX c #DBDBC2C2B5B5","AX c #C9A9CCACDD1C","SX c #D684DA7DE873","DX c #CCCCD1D1E1E1","FX c #DE95E23DEDB6","GX c #F301DE47D277","HX c #ECC7D711CB4E","JX c #F473E315D8F2","KX c #FEE4FEB9FEDD","LX c #F872F699F6EC","PX c #F0D8EE6EF05F","IX c #E1E1DFDFE8E8","UX c #C8C8BCBCCCCC","> > 3 > 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 5 3 3 3 3 3 5 3 3 5 3 3 5 3 5 3 5 5 5 5 0 0 0 3 0 3 0 5 0 0 0 0 0 0 0 0 0 0 0 0 e 0 0 e e 5 e e e e e e e e e e 5 2.5 t 5 2.5 2.5 2.5 2.y y e t y t t t t t t t t t t t t t t t u u t t 5 2.2.u 5 2.2.2.2.2.2.5 5 2.2.5 3.2.5 3.2.5 3.2.2.2.5 2.2.5 2.2.2.5 2.2.2.u 2.u 2.u 2.2.2.2.2.u 2.2.2.2.2.2.2.2.2.2.u 2.2.2.2.2.2.2.2.2.2.2.2.2.3.2.2.2.2.u 3.3.2.2.2.2.2.2.2.2.u 2.2.2.2.u u 2.2.t 2.t 2.2.2.2.t 2.2.t 2.t 2.t 2.t 2.t 2.2.t t t 2.t t t 2.t 2.t t t t t t 2.t t t t t t t t t t t t t t t t t t t t t t t e t e e t t e e e e e e e e e e e e e e 5 e e 5 e 5 5 e 5 e 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 3 5 3 5 3 3 5 3 3 5 3 0 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 : 3 : 3 3 : - @ + X   ","> > > 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 5 3 3 5 0 3 0 3 3 0 5 5 0 5 0 0 5 5 0 5 5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 e 0 e e e e e e e e e e e e e e e e e t e e 5 2.2.5 2.5 2.5 2.5 t t t u t t t t t t t u u t u u u u u u u t u u u 2.u u 2.t 2.2.5 2.2.5 2.3.2.2.2.2.2.2.2.2.2.2.2.2.2.2.3.3.3.3.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.3.2.2.2.2.2.2.2.2.2.2.3.3.2.2.2.2.3.3.2.2.2.2.3.3.3.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.3.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.t 2.2.2.2.2.2.t 2.2.2.2.2.2.2.t 2.t 2.2.2.2.t t t t 2.u u u t u t t t t t t t t t t t t t t t t t t e t e e e e e e e e e e e e e e e e e e e e e e e t 5 5 5 5 e 5 5 5 5 e 5 5 5 5 5 5 5 5 3 5 5 3 5 3 3 3 5 3 5 3 3 5 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 : : , - + ","3 3 3 3 3 3 3 3 3 3 3 3 3 5 0 3 3 5 5 3 0 5 3 3 0 3 5 5 5 5 5 5 0 5 0 5 5 0 0 e 0 0 0 e 0 0 e 0 e e e e e e e e e e e e e e e e t e t e t e t t t t t t 2.5 2.5 t 5 2.t t t 2.5 u u u u u t u t u t 2.u u u u u 2.u 2.2.2.u 2.2.2.2.2.2.2.2.2.2.2.2.2.2.3.2.2.2.2.2.2.3.3.2.2.2.3.3.3.3.3.3.3.3.3.3.2.2.3.2.3.3.2.2.2.2.3.7.3.3.3.3.3.3.2.3.3.3.3.3.3.3.3.3.2.7.2.3.3.3.3.3.3.3.3.3.3.3.3.3.3.3.3.3.2.3.3.3.3.3.2.2.3.2.3.2.2.2.3.3.3.3.2.3.3.3.3.3.2.2.2.3.3.3.2.2.2.2.2.3.2.2.2.2.2.2.2.2.2.2.2.2.2.t 2.2.2.2.2.2.t 2.2.t 2.2.u u u u u u u u u u t u t t 2.t t t t t t t t t t t t t t t e t t e e e e e e t e e e e e e e 5 t 5 5 5 e e 5 e e 5 5 e 5 5 5 5 5 5 5 0 5 5 5 5 3 0 0 3 0 3 5 3 5 3 3 5 5 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 ","3 5 3 3 3 5 3 5 3 3 5 0 5 3 0 0 0 3 0 0 5 0 0 0 e 0 0 e 0 0 0 0 0 0 e 0 e e 0 e e e e e e e e e e e e e t e e t e e 2.e 2.e e 2.t t t t t u u t t u u u 2.5 2.2.2.2.2.t 2.2.2.2.u u 2.u 2.2.2.2.2.2.2.2.2.2.4.4.2.2.2.2.2.2.2.2.2.2.2.3.2.3.3.2.2.3.3.3.3.3.3.2.2.3.3.3.3.3.3.3.3.3.3.3.3.3.7.3.3.7.3.3.3.7.7.6.3.7.q.3.7.3.3.3.7.3.7.3.3.3.7.7.q.7.3.3.3.7.7.2.7.3.q.3.7.7.3.7.3.e.3.3.3.3.3.3.q.3.3.3.7.7.q.3.7.7.7.7.7.7.7.7.7.7.3.3.3.3.3.3.3.3.3.3.7.3.3.3.3.3.7.3.2.3.3.3.7.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.u 2.u 2.u 2.2.t t t 2.t t 2.t t t 2.t t t t t t t t t t t t t t t e e e e e e e e 5 t t t t 5 t 5 e e 5 e e 5 e e e 0 0 0 e 5 5 e 0 5 0 0 5 5 5 5 5 5 5 5 3 5 5 3 3 3 3 5 3 3 3 3 3 3 3 3 3 3 : 3 ","5 3 5 5 5 5 5 5 3 5 5 5 0 5 5 0 0 0 0 0 0 0 0 e 0 e e 0 e 0 e e 0 0 e 0 e e e e t e e e t e y y t t e t t t t t e 2.2.e e e 2.e t t u t u u u u 2.2.u 2.u 2.2.2.2.2.2.2.2.2.2.2.u 2.2.2.2.3.3.6.2.2.2.3.3.2.3.3.3.3.6.6.2.3.3.3.2.6.6.6.6.6.4.7.3.3.3.3.7.3.3.7.7.2.2.7.3.3.7.7.3.3.3.3.7.7.7.7.7.7.7.7.7.7.8.6.7.7.7.q.7.7.7.q.7.7.7.7.3.q.7.7.7.q.q.q.3.q.8.8.7.q.3.q.7.7.7.7.3.e.3.3.3.e.3.e.q.3.3.q.3.q.q.3.7.7.7.q.7.7.7.7.3.q.3.3.q.3.7.7.e.3.3.q.3.q.7.3.7.3.q.3.q.7.3.7.2.7.7.7.7.2.7.2.q.2.2.3.7.2.2.2.7.2.7.2.2.2.3.3.3.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.u 2.t 2.t 2.t 2.t t 2.t 2.t t t t t 2.t t t t t t t t t t e t t t 5 t 5 t 5 e e e e e e e e e 5 e e e 0 0 5 0 0 0 0 0 0 0 0 0 5 5 5 5 5 3 0 3 3 3 0 3 3 5 3 3 3 5 3 3 3 3 3 ","5 5 5 5 5 5 5 5 0 0 0 0 0 0 0 0 0 0 0 e 0 e e e e e e e e e e e 2.0 2.e 2.0 5 2.y t t y t t y y t t t t t 2.t e 2.e 2.e 2.2.2.2.2.2.2.2.2.2.2.2.2.u 2.2.2.2.2.2.2.2.2.4.2.2.2.2.3.3.3.3.3.6.6.3.3.3.3.3.3.7.3.3.7.3.3.6.3.3.7.7.7.7.7.7.7.7.7.7.7.7.q.3.3.q.7.7.q.q.q.8.q.7.7.q.8.8.q.q.7.q.q.q.q.q.9.y.q.q.y.y.w.7.q.y.q.7.q.q.q.q.q.q.q.w.y.e.7.q.q.q.q.q.9.r.q.q.q.q.q.q.q.q.e.3.e.e.e.3.e.3.q.e.q.q.q.q.q.q.q.q.q.q.q.q.q.q.q.7.e.q.q.q.q.7.3.e.q.3.7.q.7.7.q.q.7.3.q.3.3.q.q.2.7.7.q.7.7.7.7.q.7.3.3.q.q.2.7.2.7.2.7.3.2.7.3.3.7.3.3.3.3.3.2.2.3.2.2.2.3.2.2.2.2.2.2.2.2.2.2.2.2.2.2.t 2.t t 2.t 2.2.t t t 2.t t t t t t t t t t t t t t t t e e e e e e e e e e e e 0 e e 0 0 0 0 0 0 0 0 0 0 0 0 0 3 0 5 e 0 0 3 5 5 5 5 5 5 5 3 5 3 5 3 ","5 5 5 5 5 5 0 0 0 0 0 0 e 0 e e e e e e 0 e e e e e e t e e t t 0 2.2.0 2.e 2.e t t u u t u u u 2.2.t t 2.2.t 2.2.e 2.2.e 2.2.2.2.2.2.2.2.2.2.2.2.2.2.3.2.3.3.3.2.2.6.6.3.3.3.3.3.3.6.6.6.6.3.3.3.3.8.3.7.7.7.9.7.7.9.8.8.8.q.7.7.7.8.7.q.7.8.y.q.e.q.8.q.3.e.q.q.q.t.q.9.i.y.y.i.d.i.g.i.9.f.f.i.f.f.f.f.f.<.<.<.B.<.S.S.1.1.aXaXaXaXaXaXpXpXpXaXdXpXiXiXsXsXiXsXf.q.e.q.q.y.e.3.t.t.3.e.e.3.t.e.q.e.q.e.q.q.q.q.e.q.q.q.q.q.q.q.q.q.7.q.e.e.e.e.q.q.q.e.q.7.7.e.7.3.e.e.7.e.q.7.e.e.7.q.7.7.7.q.7.7.7.e.2.q.q.q.7.7.7.7.7.7.7.3.7.7.7.7.7.3.3.7.3.3.3.3.3.3.3.2.2.3.3.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.t 2.t 2.2.t 2.t 2.t 2.t 2.t t t u t t t t t t t t t e t e e e e e e e e e e e e 0 0 e 0 0 0 0 0 0 e 0 0 0 0 0 5 0 0 5 5 5 3 5 5 3 0 3 5 3 ","5 e e 5 e 0 e 0 5 2.0 e e e e e e e e e e e e e e t t e t t t t 2.0 e 2.e e 2.2.u u u u u u u u 2.t 2.2.2.t 2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.u 3.3.3.3.3.3.3.3.7.7.7.7.7.7.q.3.9.0.0.9.9.9.9.u.9.f.f.f.-.f.<.f.B.<.<.<.1.<.S.1.S.S.aXaXaXaXaXpXpXpXpXdXsXiXsXiXiXuXuXuXuXuXuXuXtXuXtXtXtXxXxXxXxXeXxXzXzXzXzXzXkXlXzXzXzXfXzXzXkXfXkXkXfXkXkXeXeXeXeXkXzXlXkXlXkXdXe.e.e.e.e.e.e.e.t.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.q.e.q.e.e.e.e.e.q.e.7.e.e.7.e.q.7.e.e.q.e.q.q.e.q.q.q.e.2.q.q.7.7.e.7.7.e.q.7.7.7.7.7.7.7.7.7.7.7.7.3.7.3.7.3.3.3.7.3.7.2.7.2.2.2.2.2.2.2.2.2.2.2.2.2.2.t t 2.2.t 2.t 2.t 2.u u u u u u t t t t t t t t t t t t e t e e e e e e e e e e e e 0 e 0 e 0 0 0 0 0 0 0 0 3 3 2.5 e 5 e 3 e 5 5 ","0 e e e e e e e 0 e e e e e e e e t t t e t t t t e t 2.t y y y t &.;.S.D.A.iXuXyX-.3.u 3.&.u 9.&.&.&.-.-.-.-.-.&.-.<.1.1.1.S.1.1.D.D.D.aXaXpXaXpXpXpXpXpXpXsXiXiXiXiXuXuXuXuXuXuXtXtXtXtXtXtXtXtXxXxXxXzXzXzXzXkXkXkXkXfXkXkXkXkXkXeXkXeXeXeXeXeXeXeXeXeXeXeXeXwXeXwXwXwXwXwXwXwXwX0XwXwX0X0X0X0X0X0X0X0X0XqXqXqXqX9X9X0XqXqX9X9XqX9XqX9XqX9X0X0X9X8X8XlXlXlXlXlXxXh.r.e.t.t.e.t.t.e.p.e.e.t.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.q.e.e.q.q.7.7.e.q.q.3.q.3.q.q.q.q.3.3.q.3.q.3.q.7.7.7.7.7.3.7.7.3.3.3.7.3.3.2.2.3.2.2.3.2.2.2.3.2.2.2.2.2.2.2.t 2.u 2.u u u u u 2.t u t t u t t t t t t t t t t t e t e e e e e e e e 0 0 e e e e e 3 e 5 5 e 5 5 5 5 5 5 5 0 5 ","e e e e e e e e 0 2.e e 2.e e 2.t t t t u t u t %.;.1.,.D.iX5XuX7XyX0X0XeXrXeXrXwXyXyXuXtXyXtXyXtXyXtXrXrXrXrXrXrXrXrXfXrXrXrXwXrXeXeXrXeXeXeXeXwXwXeXwXeXwX0XwXwXwXwXwX0XwX0XwX0X0X0XqX0X0XwX0X0XqX9X0X9XqX9XqX9X9X9X9X9X9X9X6X9X9X9X9X9X9X6X9X9XqX8X9X9X8X9X9X9X9X9X9X9X9X9X9X8X9X9X9X9X9X9X9X9X0X9X9X9X9X9XqX9XqX0X9XqX9XqXqXqXqX0X0XqX0XqX0X9X8X2X8XkXlXlXlXlXlXsXd.t.t.p.t.p.e.e.p.p.e.p.p.p.p.p.e.p.p.p.e.p.e.p.e.p.p.e.p.p.e.p.e.e.k.e.e.p.e.p.e.p.e.p.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.q.e.e.e.e.e.q.e.q.q.e.e.q.q.q.q.e.q.e.3.e.3.e.3.q.7.7.7.7.7.7.7.7.7.7.7.7.3.7.7.7.7.3.3.7.2.3.3.3.2.2.2.2.2.2.2.2.2.2.2.2.2.u 2.u u 2.t 2.u u u t t 2.t t t t t t t t t e &.h.y e e e e e e e e e e 2.5 2.3 e e e 5 e e e e 5 0 ","e e e e t e t t 2.0 2.e e e e 2.u u u u u u u =.Z.4X1X2XqX0X0XwXrXeXrXrXeXrXeX0XqXqXqXqX6XqX6X6X6X6X6X6X7X6X6X6X6X6X6X6X6X6X6X6X8X6X8X8X2X8X8X6X2X6X8X6X9X8X8X6X6X9X8X8X9X6X8X8X7X9X9X9X9X9X6X9X9X9X8X6X9X9X6X9X9X9X9X9X9X9X9X9X9X9X9X9XqX8X9X9X9XqXqX0XqXqX0XqX0X0X0X0XwX0X0XwXwX0XwXwXwXwXwXwXwXwXwXeXeXeXwXeXeXeXeXkXeXeXkXeXeXkXeXkXkXkXkXkXkXkXkXkXkXlXlXlXlXlXxXh.p.p.p.p.p.p.j.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.e.p.p.p.k.e.p.p.p.e.e.p.e.p.e.p.e.e.e.e.e.p.e.e.e.e.e.e.e.e.p.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.q.e.e.e.q.q.e.q.q.e.e.q.q.q.q.q.q.7.7.q.q.7.7.7.7.7.7.7.7.7.7.7.3.7.7.3.3.3.3.3.3.3.3.3.2.3.2.2.2.2.2.2.2.2.2.2.u 2.u 2.u 2.2.t t 2.2.t u t u u t h.bXPXg.t 2.e e 2.2.0 0 e 2.3 2.e 3 2.e e e e e e e 5 e 5 ","e t t t t t t t e 2.0 2.2.2.e 2.u u u u u u 2.*.| ..| ..| X.X.o.Z.1XZ.1X6XeXrXqX6X6X6X1X1X1X6X6X1X6XqXqXqX1X6X6X1X6X6X6X6X6X6X6X6X2X8X8X8X2X6X6X9X6X9X9X9X9X9X9X9X9X9X9X9XqXqXqX0X0X0XqX0X0X0X0X0XwXwX0XwXwXwXwXrXrXrXeXeXeXeXeXeXeXkXeXkXkXkXkXkXkXkXkXkXkXkXkXkXkXlXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXeXkXkXkXkXeXeXeXeXeXeXeXeXeXwXeXwXwXwXwXwXwXwX0X0XkXlXlXlXlXlXsXj.p.p.p.j.p.j.j.p.j.j.j.k.p.k.p.p.p.p.p.p.p.p.p.p.p.p.k.k.e.k.e.e.k.k.e.p.k.p.p.p.p.p.e.k.k.e.k.p.e.k.p.p.p.p.p.p.e.p.e.e.e.e.e.e.e.p.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.q.e.q.e.q.e.q.e.q.q.q.e.q.q.q.q.q.q.q.7.q.7.q.7.7.7.3.e.7.7.3.3.q.3.q.3.3.7.3.3.7.2.4.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.t 2.2.u u u u d.bXLXKXbXu t e 2.e e 2.e 2.e 5 2.5 e 2.3 2.e e e e e e e 5 e ","t t t t t t 2.e e 2.2.e 2.e 2.2.u 2.u 2.2.2.3.%.+.| | | X.....X.Z.Z.Z.[ Z.wXrX6XqXqX9XqX0XwXrXrXeXeXeXeXwX0X0X0X0X0X0X0X0X0XrXwXwXeXwXwXwXwXwXeXeXeXeXeXeXeXkXeXkXeXkXkXkXeXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXeXkXeXeXeXeXeXeXeXeXeXeXwXwXwXwXwXwXwX0XwX0X0X0X0X0X0X0X0XqX0XqX9XqX9X9XqX9X9X9X9X9X9X9X9X9X8X8X8X9X9X8X6X9X8X8X8X8X9X9X9X9X8X8X9X8X9X8X<X0XlXlXlXlXlXxXB.z.k.k.j.j.k.j.k.j.p.k.p.k.p.k.k.k.p.k.p.k.p.k.k.p.p.k.k.k.k.p.p.p.p.k.k.p.k.p.k.p.k.p.p.k.p.p.p.p.p.p.k.p.e.p.p.p.p.p.k.e.k.e.e.p.e.e.e.e.e.p.e.e.k.e.e.t.e.e.t.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.e.q.q.q.q.q.q.q.e.e.3.q.3.q.q.q.q.3.7.7.7.7.3.7.2.7.3.7.4.2.3.2.2.2.2.2.7.4.4.2.2.2.2.2.2.2.u 2.cXPXKXSXvX9.u u 2.2.e 2.e 2.e e e 2.e e 5 2.3 2.e e t e e e e e ","t 2.2.t t 2.t 2.2.t 2.2.2.2.2.2.2.2.2.2.2.3.3.3.+.| | ..| X.X...[ Z.Z.Z.1X0XeXeXrXeXeXrXeXeXeXfXeXeXeXeXrXrXrXeXeXeXeXrXrXrXrXwXwXwXwXwXwXwXwXwXwX0XwX0XwX0X0X0X0X0XqX0XqX9XqX9X9X8X9X9X8X8X8X8X8X8X8X1X6X6X2X2X2X8X6X8X2X6X6X6X6X2X2X2X8X8X8X8X8X8X9X8X8X8X8X9X6X6X8X8X6X6X6X8X9X8X9X8X9X9X8X8X8X9X9X8X9X9X9X9X8X8X9X8X9X9X9X9X9X8X9X9X9X9XqX9XqX9X8X2X<X9XlXlXlXlXlXlXsXh.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.p.k.p.k.k.k.p.k.k.p.p.k.k.p.p.p.p.p.k.p.p.k.p.p.p.p.e.k.p.p.k.p.k.p.k.e.e.e.k.e.t.t.p.p.t.t.t.t.e.t.t.t.e.e.e.e.e.e.e.e.e.e.e.e.q.e.q.e.e.q.q.q.q.7.q.q.q.q.q.3.q.q.7.7.q.7.7.7.7.7.7.5.>.|.{.{.|.|.I >.*.%.4.2.2.2.3.2.2.2.3.nXKXSXF.%.0.u u u 2.e 2.e 2.e 2.e 2.e 2.e 2.e e e t t e t t t e e ","t 2.t 2.2.t 2.t 2.2.2.2.2.2.2.2.3.3.3.3.2.3.3.3.@.| ....| X...X.Z.[ Z.Z.Z.Z.Z.Z.1X6X6XqXrXwXeXkXeXeXrXqX6X1X6X1X1X6X,X1X6X1X1X1X1X1X1X1X2X2X2X2X2X2X1X2X2X2X2X2X2X2X2X2X2X2X8X2X8X8X2X8X8X8X8X8X8X8X8X2X8X2X8X8X6X6X8X6X8X2X6X6X2X8X8X8X8X8X8X8X8X8X8X8X9X8X9X9X9X9X9X0XqX0XqX0X0X0X0XwX0XwXwXwX0XwXwXwXwXwXwXwXeXeXwXeXeXeXeXkXeXkXkXeXkXkXkXkXkXkXkXkXkXkXlXlXlXlXlXlXxXG.z.z.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.p.k.k.p.k.k.k.k.p.k.k.p.p.k.k.k.k.p.p.p.p.p.p.p.p.k.e.e.k.p.p.p.p.t.t.t.t.p.t.t.t.p.e.t.t.e.e.p.e.e.e.e.e.e.e.e.e.e.e.q.q.e.q.e.q.q.q.q.q.q.q.q.q.q.7.q.7.3.7. X{.#X#X+X+X+XOX@X].[./.#.2.3.3.3.3.2.2.F.KXbX0.C.mXnXu 2.u 2.2.2.e e 2.2.e e 2.e 2.2.e 2.e t t t t t t t t ","2.t 2.2.2.t 2.2.2.2.2.2.2.2.2.2.3.3.3.3.3.3.3.3.=.| | ....X...X.Z.Z.[ Z.Z.Z.Z.[ Z.| Z.Z.Z.Z.Z.Z.6XeX0X6X6X6X1X1X1X1X6X6X6X6X0XwXwX8X2X2X1X2X2X2X2X8X2X8X2X8X8X8X8X2X6X6X9X9X9X9X9X9X9XqX9XqXqXqX0X0X0X0X0X0XwX0XwXwXwXwXwXwXeXeXeXeXeXeXeXeXeXkXkXkXkXkXkXkXkXkXkXlXkXlXkXlXkXlXkXkXkXlXkXkXkXkXlXkXkXkXkXkXkXkXkXkXkXkXeXkXeXeXeXeXeXeXeXwXeXwXwXwXwXwXwX0X0XkXlXlXlXlXlXsXz.z.k.v.z.z.k.v.k.v.z.z.k.z.z.z.z.z.z.z.z.z.z.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.p.k.k.p.k.k.k.e.k.k.k.p.k.k.p.k.p.p.k.k.e.k.p.p.p.p.p.p.p.p.p.t.p.p.t.p.t.t.e.e.e.p.e.e.e.e.e.e.e.e.e.e.e.e.e.e.q.e.e.q.q.q.q.q.q.q.q.q.q.q.N.{.+X#X#X#X#X#X#X+XOXoX'.`.~.:.3.3.3.3.3.v.FXF.h.AXKXKXcXu 2.2.2.2.2.2.2.2.2.2.e 2.2.e 2.e 2.2.t t t t t t t t ","2.2.2.2.2.2.2.2.3.3.3.3.3.3.3.3.3.7.3.3.7.7.7.7.&.=.=.@.+.+.O.X.X.| | | X.| X.| X.X.X.X.X.X.X.Z.Z.rX0X6XqXqX0X0XwXeXeXeXkXeXkXeXkXwXwX0XwXwXwXwXeXeXeXeXeXeXeXeXeXeXeXkXkXeXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXeXkXeXeXeXeXeXeXwXeXwXwXwXwXwXwX0XwX0X0X0X0X0X0X0XqXqX9XqX9X9X9X9X9X8X8X8X8X8X8X8X8X8X2X2X2X8X2X2X2X2X2X2X2X2X2X2X2X2X2X2X8X<X<XeXlXlXlXlXlXzXG.k.x.x.x.x.z.z.x.x.z.z.z.z.z.z.z.z.z.z.z.z.z.z.v.k.v.k.k.v.k.v.k.k.k.k.v.k.k.k.v.k.z.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.e.k.p.p.k.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.t.t.p.t.t.t.t.e.t.e.e.e.e.e.i.e.y.e.y.y.y.y.w.w.w.q.u.|.@X#X#X#X#X#X+X#X+X+X+X+XOX'.).R.:.0.3.8.9.SXcXcXPXKXKXKXh.2.2.2.2.2.2.2.2.u 2.u 2.u u u 2.u u u t 2.t t t t t t ","2.2.3.3.3.2.3.3.3.3.3.3.3.7.7.3.7.7.7.7.q.3.7.q.q.3.6.7.8.9.9.&.;.=.,.+.| X.X.X.X.X.X.X.X.o.Z.,X6XwXeXeXeXeXeXkXkXeXeXkXeXkXkXkXeXeXeXeXwXeXeXwXwXwXwXwXwXwXwX0XwXwX0X0X0X0X0X0XqXqXqX9XqX9X9X6X6X6X9X8X6X8X8X8X2X2X2X2X2X1X1X1X2X2X2X<X8X2X2X2X2X2X2X2X2X2X2X1X3X2X2X2X2X2X2X2X2X2X8X2X2X2X2X2X8X2X2X8X8X8X2X2X2X2X8X8X2X2X2X2X8X2X2X2X8X2X2X2X8X8X8X2X<X<X:X9XlXlXlXlXlXlXD.F.x.x.x.x.x.x.x.x.z.v.v.z.z.v.v.v.z.z.v.z.v.v.k.v.k.v.k.v.v.k.v.v.v.k.k.v.k.v.k.k.v.k.v.z.z.z.z.z.z.z.z.k.k.z.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.p.k.k.k.p.k.p.k.k.k.p.p.k.p.p.p.a.p.p.p.p.p.p.p.p.t.p.t.t.t.t.p.t.e.e.e.e.i.i.a.e.e.e.e.y.e.w.y.u.%X#X+X#X+X+X+X+X+X+X#X+X+X+XOX'.'.`.Q.H 5.6.cXbXcXLXKXKXKXKXh.3.3.3.2.2.2.2.2.2.2.2.2.2.2.u u 2.u 2.t 2.t 2.t 2.t t ","2.2.3.3.3.3.3.3.7.3.3.7.7.7.7.7.7.7.q.7.q.7.q.7.q.q.q.q.q.q.q.q.w.w.r.,.X.X.X.X.X.X.X.X.Z.X.X.X.X.Z.;X:X1X6XqX0XwXeXeXeXkXeXeX0X1X2X2X1X1X1X<X1X1X1X<X<X<X,X<X<X<X2X<X2X<X2X<X1X<X2X1X2X1X1X1X1X2X1X2X1X2X1X2X2X2X1X2X2X2X1X2X2X2X2X2X2X2X8X2X2X8X2X2X2X2X2X2X2X8X2X2X8X8X2X8X2X2X8X8X8X8X2X2X2X8X8X8X8X8X8X8X8X8X9XqXqX9X0XqX0X0X0X0XwXwXwXwXeXwXwXwXeXwXeXwXeXlXlXlXlXlXlXxXG.x.x.x.v.x.x.v.v.v.z.v.v.z.v.v.z.v.z.v.v.v.v.z.v.v.v.v.k.v.k.v.k.k.v.v.z.v.k.v.v.z.z.v.k.z.z.z.z.z.z.z.z.z.z.z.z.z.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.p.p.k.p.p.p.k.k.p.a.p.k.a.p.p.k.p.p.p.p.p.p.p.p.p.t.t.i.N.>.{.{.{..X XN.u.y.t.w.w.u.%X+X+XoXoXoXoX+XoX+X+X#X+X+XOXOXOX'.`.!.T.J u.bXcXKXKXKXKXKXKXg.7.3.8.3.3.2.2.u 2.2.u 2.2.u 2.2.2.2.2.2.t t 2.2.t 2.2.","3.3.3.3.e.3.3.3.7.7.7.7.7.7.7.q.q.7.q.7.q.q.q.q.q.q.q.w.q.q.w.e.w.w.e.;.| X.O...X.X.o.X.X.Z.O...| X.| X.| X.X.X.X.Z.Z.:X,X6XwX0X1X1X1X1X1X1X1X<X1X1X2X9X0XwXwX1X1X<X<X<X2X2X2X<X2X2X2X2X2X2X1X1X1X2X2X2X2X8X8X8X2X8X8X8X8X8X9X9X8X9X9X0X9X9X0X0X0X0X0XwXwXwXwXwXwXwXwXeXrXwXeXeXeXeXeXeXkXkXkXkXkXkXkXkXkXlXlXlXlXlXkXlXlXlXlXkXlXlXkXlXkXkXkXkXkXkXkXkXkXkXkXeXlXlXlXlXlXlXlXsXv.v.v.v.v.b.v.v.b.v.v.v.v.v.v.v.v.v.v.v.v.v.z.v.v.v.v.v.v.v.v.v.v.v.z.v.v.v.v.k.z.v.z.v.z.v.v.z.z.v.z.v.z.z.z.z.z.z.k.k.k.v.k.v.k.k.k.k.k.k.k.k.k.z.k.k.k.k.z.k.k.p.k.k.p.a.k.a.p.p.p.p.p.p.p.p.p.p.p.a.a.i. XBXIXCXBXhX*X*X%X{.|.u.t.i..X+XOXOXoX'.oXoXoXoXoX+X+X+X+X+XOXOX'.'.!.Q.L.|.nXKXKXFXbXbXAXPXC.7.3.3.3.3.3.3.d.h.C.F.cXF.d.u 2.u 2.2.2.2.2.2.2.t 2.t ","7.3.7.3.3.3.q.3.7.e.3.7.q.3.e.3.q.q.q.q.e.7.e.q.q.q.e.w.r.r.r.e.e.e.e.r.-.=.,.@.@.+.O.Z.X.o.o...X.X.X.X.X.X.X.X.X.o.o.X.Z.;XwX6X1X1X6X6XqX0X0XwXeXkXkXkXeXkXkX9X0X0X0X0X0XwX0XwXwXwXwXwXrXeXeXeXeXeXeXeXeXeXeXkXeXkXkXkXkXkXkXkXkXkXlXkXkXlXkXkXkXlXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXeXeXeXeXeXeXeXwXeXwXwX0XwX0X0X0X0X0XqX0XqX9X9X6X6X6X6X6X6X1X2X2X2X2X1X2X2X<X1XkXlXlXlXlXkXzXG.v.b.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.z.z.z.v.v.v.v.v.v.v.v.v.v.z.z.v.z.z.z.z.v.z.v.z.k.v.k.v.k.k.k.k.v.k.k.k.k.v.z.z.k.k.k.k.k.z.k.k.k.k.k.k.l.l.p.k.k.p.k.a.p.p.p.p.p.p.N.%X#X$XhXCXKXKXLXLXLXPXJXIXAXUXBXgXjX[._.].`.].^.@X@X@X+X+X+X+X+XOXOX'.`.Q.R.(.IXLXcXg.y.q.q.g.i.3.8.C.nXmXSXFXPXLXLXDXcXi.7.2.3.2.2.2.2.2.2.2.2.t 2.2.","3.7.7.7.e.3.3.e.7.3.q.7.q.q.q.q.q.q.q.q.e.q.e.e.r.r.e.e.e.e.e.r.e.t.t.e.t.t.t.t.r.d.d.f.<.;.,.+.X.X.| X.X.X.X.X.X.X.X.X.;X1XeXrXwXeXkXeXkXkXkXkXeXkXkXkXkXkXkXkXkXkXkXeXkXkXkXkXeXkXeXkXeXeXeXeXeXeXeXeXeXeXwXwXwXwXwX0X0X0XwX0X0X0X0X9XqX9X9X9X9X8X9X8X8X8X8X2X2X<X2X<X2X<X<X<X<X<X<X<X<X1X<X<X<X<X<X<X1X<X<X1X<X<X<X<X<X<X<X2X1X1X1X1X<X1X1X1X1X1X1X1X<X<X<X<XZ.rXlXlXlXlXlXlXsXb.v.b.b.v.b.v.b.b.v.b.v.b.b.v.v.v.v.v.v.v.b.v.v.v.v.v.v.v.v.v.v.v.v.b.v.v.v.v.v.v.v.z.v.v.z.v.v.v.v.v.z.v.z.v.v.z.v.k.v.k.v.k.z.v.k.k.v.k.v.k.z.z.z.z.z.z.z.a.k.k.k.k.k.k.l.a.z.p.k.k.a.a.a.k.k.p.i. X@X#X#X#X#X#X&XhXJXLXKXKXKXKXKXKXKXVX%X*XGXGXGXGXGXVX*XGXhXOX+X+XOX+X'.'.`.!.Y.gXKXcXy.cXFXLXSXcX8.8.bXKXLXLXKXKXKXmXF.3.2.7.2.3.3.3.3.3.2.2.2.2.2.2.2.2.","q.7.3.7.e.3.e.7.3.e.q.7.q.e.q.q.q.e.e.q.e.q.q.e.e.t.e.e.e.t.t.e.t.t.t.t.t.t.t.t.t.t.j.t.j.j.s.;.| X.X.X.X.X.X.X.o.X.o.Z.Z.;X,X1X6X0XwXrXeXkXkXkXkXkXkXkXkXwX6X8X8X2X2X<X2X<X<X<X<X<X<X<X<X1X<X<X,X,X<X,X<X<X1X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X1X<X2X<X<X1X<X1X1X1X1X<X1X<X2X2X2X<X1X2X<X<X2X<X<X<X<X1X1X2X1X1X1X1X1X1X1X1X<X<X<X<X:XZ.6XkXlXlXlXlXlXzXG.b.v.v.b.b.x.v.b.v.v.b.v.b.v.v.b.v.v.v.b.b.v.b.v.v.b.b.v.v.v.v.b.b.v.b.v.v.v.v.v.v.v.v.v.v.v.z.v.v.v.v.v.v.v.v.v.v.v.v.k.v.v.v.v.v.v.v.k.k.z.z.z.z.z.z.z.z.z.z.z.k.k.k.c.=X X X=Xi.a.a.a.k.k.a.a..X@X+XOX+X+X#X+X#X#X$XhXJXKXKXKXKXKXhX_.Q.gXLXLXKXKXPXCX%XVXjX'.+X#X$X+X'.'.].`._.ZXHX*.F.KXKXFXKXLXC.nXKXPXnXSXPXbXh.3.3.3.3.3.2.3.7.3.3.3.3.3.2.2.2.2.2.2.","7.q.e.7.7.e.3.e.e.7.e.q.e.q.e.q.q.e.q.e.e.e.e.e.e.e.e.t.t.t.t.t.t.t.t.t.t.j.t.t.j.j.t.j.s.s.s.;.X.X.X.X.X.X.o.o.X.Z.Z.o.X.X.| | | X.X.o.Z.Z.:X1X2XqX0XwXwX9X,X<X,X<X<X<X,X,X<X<X,X,X<X<X2X2X:X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X<X1X<X<X2X<X<X<X1X<X<X<X2X<X<X1X2X<X2X<X<X2X<X<X2X<X1X2X2X2X2X2X2X1X8X8X8X8X8X8X9X9X9X9X9X0X0X0XwX0X0XwX0X0XwXwXrXwXeXeXeXeXeXeXeXeXkXkXkXlXlXkXlXlXlXsXb.b.b.v.b.b.v.b.b.v.b.b.v.b.v.b.b.b.v.b.v.b.b.b.v.b.v.b.v.b.v.b.v.v.b.v.v.v.v.v.v.v.b.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.k.v.v.v.v.z.z.v.z.z.z.z.z.z.z.z.z.N..X@X#X#X#X@X{.|.N.k.k.k.=X@X@XoX^.oXOXoX+X+X#X#X#X$XCXKXKXKXLX}.U.U.P.W.XXKXZXI.W.*XHXjXOXhXGXJXHXjX$XCXVXVXLXMXF DXKXnXw.nXbXC.DXKXnXe.z.h.s.d.d.s.s.q.3.7.7.3.3.7.3.7.3.3.3.3.3.2.3.","q.q.3.e.7.e.7.7.e.7.e.e.e.e.e.e.e.e.e.e.r.e.e.e.e.t.e.t.t.t.t.t.t.t.t.p.t.s.s.j.j.s.s.p.p.p.j.d.=.,.@.A.Z.Z.Z.Z.o.Z.o.Z.O.X.X.| ..X...X.X.X.X.X.X.o.Z.Z.0X6X,X,X<X<X,X<X<X2X8XqX0XwXeXkXkXeX1X<X<X<X<X<X1X1X2X2X2X1X2X2X8X8X8X8X8X9X9X9X9X0X0X0X0X0XwX0XwXwXwXwXrXeXeXeXeXeXeXeXeXkXkXkXkXkXkXkXkXkXkXkXkXlXkXlXlXlXkXkXlXlXlXkXlXlXlXkXlXkXkXlXkXkXkXkXkXfXkXlXkXfXkXlXlXlXlXkXlXlXG.b.v.b.x.b.b.v.b.b.b.b.b.b.b.b.b.v.b.b.b.v.v.v.b.b.v.v.b.v.b.b.v.b.v.v.b.b.b.b.v.b.v.v.b.v.v.v.v.b.v.v.v.v.v.b.v.v.v.v.v.v.v.v.v.v.k.v.v.v.x.z.v.z.x.z.z.z.z.a.V. X$X#X#X#X#X#X#X+XoX^.N.l.V.{.OXoX^.^.^.^.^.oXOX+X+X+X+X$XCXKXKXKX.XY.K.V M XXLXNXs n XXKXhX&XGXHXhXJXJX$XLXLXGXKXgXS IXKXC.t.3.3.t.SXKXF.M.LXPXPXPXPXPXbXr.8.3.q.3.3.q.3.3.7.3.3.3.3.3.3.","q.q.q.q.e.7.e.e.e.e.q.q.e.e.e.e.e.e.e.e.t.t.t.t.t.t.t.t.t.t.s.t.p.t.t.j.g.f.1.,.f.j.s.j.s.j.j.s.j.j.e.k.j.d.f.;.,.,.@.@.O...X.X.....X.X.X.X.X.o.o.X.o.Z.qX9X<X2X8X0XwXeXeXkXkXkXkXkXkXkXkXkXeXeXeXeXkXeXeXeXkXeXkXkXkXkXkXkXkXkXkXlXkXkXlXkXkXkXlXkXlXlXkXkXkXkXkXkXkXkXeXkXkXkXkXeXeXeXeXwXeXeXrXwXrXrX0XwX0X0X0X0X0X0X9X9XqX9X6X6X6X6X6X1X1X6X1X1X1X,X,X1X1X1X1XZ.Z.eXlXlXlXlXzXlXsXF.b.b.b.b.b.b.v.b.v.b.v.b.v.b.b.b.b.b.b.b.b.b.b.v.b.b.b.b.v.b.b.v.b.b.b.v.b.v.b.v.b.v.b.v.v.b.b.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.k.v.x.m.v.z.v.v.v.z.z.V..X#X+X+X#X#X#X#X#X+XoX^.~.N..XOX^.^.~.~.~.~.^.oXoXOX+X+X+X+X@XHXKXKXNXP.V n d |.KXNXi p  XKXMX`.&XhXCXLXJX&XLXJX}.JXgXS JXKXC.3.v.F.s.DXKXnXC.bXLXKXKXKXbXy.8.7.q.3.q.3.q.3.7.7.7.3.7.3.3.3.","q.q.q.e.q.e.e.q.e.q.e.e.e.e.e.e.e.e.e.e.t.r.t.i.t.r.t.d.d.f.<.1.D.A.5X4X4X>X<X,XA.<.<.<.<.1.1.1.S.=.,.,.D.D.A.A.@.A.A.5XZ.| | X.X.X...o.X.X.o.X.o.o.-X2XwXeXeXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXeXeXkXeXeXeXeXeXwXeXwXwXwXwXwX0XwX0X0X0X0X0XqX9X9X8X8X8X8X8X2X3X2X<X2X3X<X3X<X<X<X<X<X,X1X,X<X,X<X:X,X,X,X,X,X,X,X1X<X:X:X:X,X<X<X:X,X,X1X1X,X,X,X,X,X1X,X1XZ.1X1XZ.Z.1XZ.qXkXlXkXlXlXlXlXG.b.b.b.b.b.b.b.b.b.b.b.b.b.v.b.b.b.b.b.b.b.v.b.b.b.b.b.b.b.b.b.b.b.v.b.b.b.v.b.b.b.v.b.v.m.m.m.m.b.b.v.b.b.v.v.v.v.v.b.v.v.v.v.v.m.N.N. X X=XV.z.x.v.v.v.c..X#XoXOX+X+X+X#X#X#X+XoXoX^.{.^.^.Q.Q.T.J.J.T.T.^.^.OX+X+X+XOX'.%XGXKXKXgXH.d i |.KXNXg 6 F.KXMX*XLXHX*XJXJX&XLXCX].GXVXP.NXKXbXj.mXLXbXnXKXFXF.cXPXKXKXSXp.q.3.q.3.q.q.3.7.7.7.7.7.7.7.3.7.3.","q.q.q.q.q.e.q.e.e.e.e.e.e.e.p.e.e.e.e.e.t.t.d.f.1.D.pX5X5X7X3X1X3X1X<X<X1X<X<X<X,X:X;X;XZ.Z.Z.Z.Z.Z.Z.| Z.Z.}.o.Z.Z.Z.-XZ.X.| X.X...X...X.X.o.o.X.o.X...X.Z.;X,X2X8X0XwXeXkXeXkXkXkXkXkXeX<X,X,X:X:X:X:X:X:X:X;X:X:X;X:X:X:X;X:X:X:X:X:X:X:X,X:X:X:X<X:X<X<X:X:X:X:X<X:X,X,X,X:X,X,X,X,X:X,X<X:X,X,X1X,X,X,X1XZ.<X<X<X<X<X:X<X<X1X,X,XZ.,X,X,X1X1X,X,X1X1X1X6XZ.1XZ.Z.6XfXkXlXkXlXlXlXuXb.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.v.b.b.b.b.b.b.b.b.v.b.b.b.b.b.m.m.m.m.b.v.b.v.b.v.b.v.v.b.v.b.v.v.v.v.=X%X#X#X#X@X@X.XN.v.v.z.=X@XoX^.oX^.OX+X#X+X+X+X+XoX^.^.!.Q.U.J.Z V b V H.~.^.oXoXOX+X+X+X'.&XGXKXPXgXd i ,.LXbXL p.cXKXvXgXKXCXBXKXPX$XLXCX].GXJXW.}.PXKXLXKXLXh.j.SXKXKXKXKXKXPXC.3.q.q.q.q.q.q.q.3.q.7.7.7.7.7.7.3.7.","q.e.q.e.e.q.q.e.e.q.e.e.e.e.p.e.e.p.e.p.e.p.-.O.-X;X,X,X1X6X6X6X8X8X8X8X2X1X-X-XZ.Z.Z.X.......{ | | | [ [ [ [ [ { { ] ]  .....X.X.o.X.o.X.o.o.o.o.o.X.| | X.| | ....X.X...Z.;X<X1X9X0XwX0X:X;X,X:X:X:X,X:X:X:X:X:X:X:X<X8X9X<X,X,X:X,X:X<X:X,X,X,X,X<X,X,X<X:X<X<X,X,X,X<X,X,X<X1X,X1X,X1X,X,X,X,X,X,X,X1X,X1X1X1X1X1X1X<X2X3X2X1X1X6X6X6X6X6X6X6XqX9XqXqXqXqXqX0XqXqXwXfXlXlXkXlXlXlXzXG.x.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.v.b.b.m.n.n.n.n.n.n.n.b.b.b.b.m.m.m.m.m.V.V..X@X#X#X#X#X#X+XoX[.V.z.V.%X^.^.^.^.^.^.+X+X+X+X+X+XoX'.).Q.U.J.V m d a i a b T.^.oXOX+X+XOX'.'.{.CXKXKXvXz H vXvXd.t.C.mXcX|.MXCXMXhXBX%XVXhX).gXVX}.P.XXUXAXmXF.e.e.j.F.bXKXKXLXcXq.q.q.e.3.p.3.q.q.3.q.7.q.7.7.7.7.7.7.","e.q.e.q.e.e.e.e.e.e.e.e.e.e.e.e.p.e.e.p.p.e.u.+.| | | | | X.Z.Z.-X;X:X<X:X-XX.o.Z.Z.| X.........| | | X.{ [ { { { ] { ] } [ { { { ......o.X.o.o.o.o.Z.| | X.X.X.....X...X...o...X...o.:XqX:X;X:X:X:X:X:X,X<X1X8X0XwXeXeXkXkX0X:X:X<X:X,X<X<X<X<X<X<X<X2X<X2X2X8X8X8X9X9X9X9X9XqX6X0X0X0X0X0XwXwXwXrXrXeXrXrXrXeXeXeXeXkXkXeXkXeXkXkXkXkXkXkXkXkXkXkXkXkXkXfXkXkXkXkXkXfXkXkXlXkXlXlXlXlXuXF.v.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.n.n.n.n.n.n.n.n.V.V.v.b.m.m.m.m.m.V..X+X@X#X#X#X#X#X#XoXoX(.m..X^.^.~.T.T.~.^.^.OX+X+X+XOXoX'.).Q.T.V b d i i i a g >.~.oXOXoX+XOXOX'.`.].MXLXKXIXXXc 8.s.j.p.p.p.u.~.^.oXOX+X+X'.'.`.R.Y.L.H.V *.r.t.t.e.t.C.nXPXKXLXnXe.e.e.q.e.p.3.q.q.q.q.q.q.7.7.7.q.7.7.7.","q.q.e.e.q.e.e.e.e.e.e.e.e.e.e.e.e.e.p.e.e.e.p.' | | | | | X.| | ........o.o.X.o.Z.Z.Z.}.-X;X;X:X:X,X,X,X}.[ ..{ { { ..{ ..{ { ............o.o.-X-XZ.Z.X.| | | X.| X.X.X.X.....X...o.o.;X9X,X;X,X2X9X0XwXeXkXkXkXkXkXkXkXkXkXeXeXwXeXeXeXeXeXeXeXkXkXeXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXlXkXkXkXkXkXkXkXkXkXkXkXkXkXlXkXfXkXeXeXrXrXwXwXwXwX0X0X0XqX0X0X6X6X6X1X6X6X1X1X1XZ.1X1XZ.Z.1XZ.Z.F.b.b.b.b.b.v.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.n.n.n.n.n.V.=X%X$X@X.X XV.m.m.m.m.=X@XoXoX+X@X#X#X#X+X+XoX^..X^.~.T.J.J.Z H.T.^.oXOX+XOX+X'.'.`.!.T.V d a i i i i *.k.|.^.oX+XOXOX'.'.`._.Q.}.ZXLXKXLXPXFXSXFXSXSXSXHXHXHXHXHXHXHXHXHXHXCXAXHXHXSXSXSXSXFXPXKXKXKXSXF.3.e.q.q.e.q.q.q.q.q.q.q.q.q.q.q.q.7.q.e.7.","e.e.e.e.e.e.e.e.e.e.e.e.e.e.k.e.e.p.e.p.p.e.p.#.| | | | | | | X.......X.-X:X:X<X1X6X1X1X2X1X2X1X1X1X1X,X:X<X:X:X:X:X-X:X-X;X;X;X;X-X;X;X;X;X;X:X,X,X;XX.X.X.| X.| X...X...X...o.o.X.-X6XwXwXeXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXkXeXkXeXeXeXeXwXwXrX0XwX0X0X0XqXqXqXqX6X1X6X6X1X1X1X1X,X,X,X1XZ.1XZ.Z.Z.Z.Z.Z.Z.}.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.k.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.v.n.n.n.n.n.=X$X#X#X#X@X@X{.N.m.m.V.{.^.^.^.^.oX+X+X#X+X@XoX^.~.^.T.J.H.b b f b Q.'.OX+XOX+XoX'.`.!.R.H.a a i i i K z.z.N.^.'.oXOX'.OX'.`._.Q.E.E.(.S.mXSXFXFXFXFXSXFXIXGXHXGXGXGXGXGXGXGXGXHXHXHXSXFXFXFXFXFXDXbXF.j.p.p.e.e.e.q.e.e.e.q.e.q.q.q.q.q.q.7.q.q.3.7.","e.p.p.3.e.e.e.e.e.e.e.t.t.t.t.t.t.e.e.t.p.t.t.=.| | | | | | | X.....;X1X2X6X9XqX9X9XqX9X9X6X6X6X2X2X<X:XZ.:XZ.Z.Z.Z.o...o.........{ { { ..{ | [ | { { ..| | Z.| X.X.| Z.X.| Z.Z.X.o.X.X.Z.;X,X6X6XwXrXkXkXkXkXkXkXkXkXkXkXkX1X<X,X:X,X;X;X;X-XZ.Z.Z.Z.Z.o.o.o.o.}.Z.Z.X.Z.Z.Z.Z.X.Z.X.Z.X.Z.Z.X.o.X.X.X.o.X.X.Z.X.X.Z.X.o.o.o.X.Z.o.X.Z.o.Z.o.o.o.o.Z.X.Z.X.Z.Z.Z.X.Z.X.X.X.Z.X.Z.| Z.Z.A.g.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.n.n.n.n.n.n.n.n.n.n.n.n.n.n.n.n.n.b.b.V.V.V.n.n.n.n.n.n.n.=X@X+X#X#X#X#X#XoX[.V.V. X^.~.~.T.~.oXoX+X+X+XOXoX'.!.~.J.V b v a a a b ^.oX+X+XoXoXoX^.!.Q.U.s i i i z p.z.z.z.(.`.oXOXOX'.'.`.Q.Q.R.L.M K k.l.l.l.k.l.l.a.g.W.].'.OX].'.`.`._.Q.Y.P.S J t.p.t.s.t.t.t.e.e.t.t.e.t.r.r.q.e.q.q.q.e.q.q.q.q.q.3.q.q.3.3.","e.3.p.e.e.e.t.e.t.e.p.e.t.e.t.t.p.p.t.p.t.t.t.-.| | | | | Z.| | ....| | | X.o.Z.-X,X<X1X9X9X9XqX6X;Xo.o.Z.Z.Z.X...| ..{ { { { ] { { { { { ] [ [ [ ] ] | Z.| | | Z.X.| Z.| Z.| Z.o.o...| | | | | | | X.Z.Z.,X1X6XqXwXeXkXkX0X-XZ.Z.Z.Z.Z.Z.o.Z.o.o.o.o.o.o.o.Z.o.Z.X.Z.Z.X.X.X.X.Z.X.Z.X.Z.| X.Z.o.X.o.Z.X.Z.Z.X.Z.X.Z.X.o.o.Z.o.Z.X.Z.o.o.o.o.Z.o.o.o.o.Z.X.Z.X.X.Z.X.Z.Z.X.X.Z.Z.Z.Z.| Z.h.v.b.v.b.b.b.b.b.b.b.b.b.b.b.n.b.b.b.n.n.n.n.n.n.n.n.n.n.n.n.n.n.n.n.b.m..X%X%X XV.n.n.n.n.=X@X@XoX#X#X#X#X+XoXoX XV.[.~.T.J.J.J.^.oXOX+X+XOXoX^.!.Q.H.b v a a a i K |.'.oX+XoXoX^.^.!.R.U.v i i i L z.z.z.z.>.^.oXOXOX'.'.`.).Q.Y.L.H.0.k.k.k.j.k.j.l.z.a.(.).'.'.'.'.'.)._.Q.Y.K.S B 9.t.t.t.t.t.t.t.e.e.e.e.r.e.r.e.e.w.w.e.q.e.q.q.e.q.e.e.3.e.q.","e.e.e.e.p.e.e.t.e.t.t.t.e.p.t.t.e.p.t.t.t.p.t.t.-.;.=.@.@.+.O.O.X...| { | X.| ..| X.X.| ..X.o.Z.}.o...o.Z.Z.Z.Z.X.X.......o.o.-XZ.{ { { { [ [ _ { { ] { [ | { { [ | Z.Z.Z.Z.Z.| o.o.o.| | | | | | | | | | | | | | | X.o.-X2XZ.o.Z.Z.Z.Z.Z.Z.Z.o.Z.o.o.o.o.o.o.o.Z.X.Z.| Z.Z.Z.X.X.X.Z.Z.| Z.Z.Z.o.o.o.o.Z.Z.X.o.X.Z.Z.X.o.Z.Z.o.Z.o.X.Z.Z.o.Z.o.Z.o.Z.o.Z.X.Z.X.Z.Z.Z.Z.X.| Z.Z.Z.Z.Z.Z.Z.v.x.b.b.b.v.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.n.n.n.n.n.n.n.n.n.n.n.n.n.n.N.%X@X#X#X#X%X=XV.n.n..X^.^.^.oX+X+X#XoXoXoX^..X^.J.H.b b b J.^.OX+X+XOXoX'.).Q.Z v s a i i g a.N.^.^.oXoXoXoX^.!.Q.T.Z i i p i.z.v.z.z.N.!.'.oX'.'.'.`.!.Q.Y.U.I.a.l.l.k.k.k.j.a.a.j.:.).`.'.'.'.`.).).R.Y.L.S M *.i.t.t.t.t.t.t.t.e.t.e.e.r.e.q.e.t.e.y.e.w.y.q.e.q.e.q.q.e.3.","e.e.t.e.e.e.t.e.p.e.t.e.t.e.t.t.p.e.p.t.t.t.t.p.p.j.s.s.s.d.9.-.;.,.@.| | | | | | ..| | | X.....Z.o.....Z.Z.Z.Z.:X,X<X<X3X<X3X<X:Xo.X.o.}.Z.Z.Z.o.o.X.o.Z.Z.}.o.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.o.| | | | | | | | | | | | | | | ..| X.2X-XX.Z.o.Z.Z.Z.o.o.Z.Z.Z.Z.o.Z.o.Z.o.Z.Z.X.Z.X.X.Z.X.Z.X.Z.X.Z.Z.Z.| o.o.Z.o.o.o.Z.X.Z.X.Z.Z.o.Z.o.o.Z.X.Z.o.o.o.Z.o.Z.o.Z.o.Z.Z.Z.Z.Z.Z.Z.Z.X.Z.Z.Z.Z.Z.| Z.Z.z.b.b.b.v.b.b.b.v.b.b.b.b.b.b.b.b.b.b.b.b.n.n.n.n.n.n.n.n.n.n.n.n.n.N.{.@X#X#X#X#X@X{.V.n.V.~.~.T.~.^.oX+X#X+XoX^.^.^.~.H.b b a a a ^.oXOXOXOX'.`.).Q.J.f a i i i P b.m.{.oXoXoXoXoX^.!.Q.T.J.i i K z.v.z.v.v. X!.^.'.OX].].].).R.R.L.P.u.l.l.l.x.l.j.k.a.j.>.Q.`.'.].].`.).).Q.Y.L.S D *.t.a.t.t.t.t.e.s.s.s.s.t.e.t.w.e.e.e.e.y.e.w.q.q.q.q.q.e.q.q.","e.t.e.e.e.t.t.t.e.e.t.t.t.t.t.t.e.p.e.p.t.p.t.p.t.j.t.t.t.s.t.j.s.s.;.| | | | X.....X.X.X...o.Z.Z.1X1X6X6X6X6X6X6X6X6X6X8X8X2X2X1X1X<X<X,X<X:X:X;X;X:X;XZ.;X-X-X;XZ.Z.}.;X;X;X;X;X;X-X| | | | | | | X.| | | | X.X.| | X.X.1XZ.X.X.o.o.o.Z.Z.Z.Z.o.Z.Z.o.o.Z.o.Z.X.Z.Z.Z.Z.Z.Z.Z.o.o.Z.X.Z.X.Z.X.o.o.Z.o.X.Z.Z.Z.Z.X.Z.o.Z.Z.o.Z.Z.o.o.o.Z.o.o.o.Z.o.o.Z.X.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.}.Z.Z.Z.Z.Z.k.x.b.v.b.v.b.b.b.m.b.b.b.m.b.b.b.m.b.b.b.b.n.n.n.n.n.n.n.n.n.n.n.n..X^.^.oX#X#X#X#X@X XV..X~.J.H.H.~.oX+X+X+XoXoX^.~.J.A b a a a a I.'.OXOXoX'.`.).Q.T.f s i i p u.b.v.|.'.oXoXoX].^.!.R.T.J.f p 5.x.z.z.z.z.|.!.`.'.'.OX].]._._.Y.L.J.>.z.z.z.c.z.j.p.k.p.u.~.`.`.'.'.`.`.).R.Y.L.P.D P t.p.t.t.t.t.t.t.l.s.t.t.t.e.t.w.w.e.w.w.w.w.e.e.q.e.q.q.q.q.","t.e.t.t.t.e.t.e.t.t.e.t.t.t.t.t.p.e.e.p.p.t.t.t.t.t.t.t.t.j.t.t.t.s.-. .| X.| | X.| | X...X.Z.:X1X6X6X6XqXqXqX9X6X6X6X6X8X8X8X:X;X;X;XZ.}.o.o.o.....| | | | { { | | | { { { | [ { [ { | | | | | X.| | | X.| X.| | ..| X.| <XZ.X.o.o.o.o.o.o.Z.Z.Z.o.o.Z.Z.o.o.o.X.Z.Z.Z.Z.X.Z.Z.Z.o.Z.Z.Z.Z.Z.Z.Z.Z.o.o.Z.Z.Z.Z.X.Z.Z.Z.o.Z.o.Z.o.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.;XZ.@.A.A.A.x.b.x.b.v.b.v.v.b.v.b.m.b.b.b.b.v.b.b.n.b.n.b.n.n.n.n.n.n.n.n.n.n.V.^.~.^.oXoX#X#X+XoX^.N.[.J.H.b b H.^.oX+XoXoX^.^.~.J.b f a a a a N.].oXOXOX'.`.).Q.T.m i i i c x.m.v.N.].'.oXoX`.`.!.R.Y.J.f l a.x.z.v.x.x.(.Y.^.'.'.].].]._.Q.R.L.H.:.p.z.z.z.c.j.x.k.a.i.W._.`.].'.`.).).Q.Y.L.K.C J t.p.p.t.p.t.t.t.s.i.t.t.e.e.t.e.w.w.e.e.w.w.e.q.e.q.e.q.q.q.","e.e.e.t.e.t.t.e.t.e.p.e.t.t.t.e.e.p.e.p.t.t.t.t.t.t.t.p.t.t.j.t.t.t.9.+.+.| X.| | | X.X.X.X.| | Z.| Z.Z.Z.Z.Z.1X6X6X6XqXqX8X;X..X.X.X.| Z.| ..{ { { { _ [ { { { [ { { { ] { [ [ [ { _ | | | | X.| | X.| X.X.X.| X.X.| X.X.:X-XX.o.o.o.o.Z.Z.o.Z.Z.Z.Z.o.o.Z.Z.o.Z.Z.Z.Z.Z.Z.Z.Z.Z.o.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.Z.;X;X;X;X;X;X;X;X;X;X;X;X;X;X;X;X:X:X:X:X,X:X,X1X1X1X1X6X6X8XqX5XF.z.x.x.b.x.b.x.b.v.v.v.b.b.b.v.b.m.v.b.b.b.b.b.b.b.b.n.n.V.V.n.n.n.n.n.n.|.T.J.J.^.oX+X+X+X^.^..XT.J.b a a a ~.oX+X+XoXoX^.^.J.b a a a a c z.{.].OXOX'.`.!.Q.T.V a s i *.m.v.b.V.~.].oX'.'.).!.Q.T.U.b K z.x.x.x.z.N._.U._.`.].].`.`._.Q.R.L.J.I p.z.z.l.z.p.l.p.p.a./.~.`.].].`.).Q.R.Y.L.K.C J t.t.t.t.p.t.t.t.s.t.i.t.t.w.e.e.t.t.e.w.e.e.e.q.e.q.q.q.q.q.","e.t.t.e.t.t.t.t.t.t.t.t.t.t.t.t.t.e.p.e.t.e.t.t.t.t.t.t.t.t.e.j.t.e.r.d.d.f.;.=.,.@.+.O.X.O.| ..[ | [ | Z.| Z.| | Z.Z.Z.}.;X..{ | Z.X.Z.| | ........}.Z.Z.;XZ.{ { { ] { { ] { { { { { { | X.| X.| X.X.| | | X.X.| | X.X.X.:X-XX.o.o.Z.Z.Z.Z.-X;X;X;X;X;X;X:X;X:XZ.,XZ.1X;X,X,X,X<X,X1X1X,X1X1X,X1X2X1X1X1X1X1X6X1X1X1X,X,X1X,X<X,X,X<X,X,X:X;X:X:X:X:X:X,X,X,X,X,X,X1X1X6X6X9X9X0XS.z.x.x.x.b.x.b.x.M.v.v.m.v.v.b.v.m.b.b.m.v.b.b.b.b.b.m.=X%X.Xn.n.n.n.n.m.W.J.H.J.~.oXoX+XoXoX^.^.J.b b a a a J.oXoXoXoX^.^.~.J.v a a i a *.m.|.oX'.'.'.`.).Q.T.Z s i a a.m.v.v.l.[.'.'.'.`.`.!.T.T.J.V *.x.x.k.x.v.>.R.L.Q.`.'.].`.)._.Q.Y.Y.J.J a.p.p.l.p.z.p.z.p.p.(.Q.).`.`.).).Q.R.R.L.S Z l t.p.t.t.t.t.t.t.t.t.t.t.t.r.e.e.w.e.w.e.w.w.q.e.q.e.e.e.e.q.","p.e.t.t.t.e.p.e.t.t.t.e.t.t.t.t.t.t.t.t.t.t.e.t.t.t.3.t.t.3.s.3.e.e.e.e.j.t.3.d.e.r.9.9.-.;.,.| | | | | | X.X.| | Z.Z.| | | X.| | X.o.o.Z.-X;X,X<X<X2X<X<X<X:X..X.X.X.X...o...X.X.X...o.Z.Z.Z.Z.Z.Z.}.Z.Z.Z.Z.Z.Z.X.X.X.| Z.,X<X1X1X<X2X<X3X2X<X3X3X3X6X6X1X2X1X6X,X1X1X1X1X1X1X1X1X2X1X<X3X<X<X<X<X<X:X<X:X:X}.;X-X-X;X}.o.o.o.o.Z.}...........{ { { ..{ { { { { ] o.8X2X8X8X9XqXiXx.x.x.x.v.v.x.x.x.m.v.m.m.v.v.m.v.b.b.v.b.b.b.b.b.N..X@X+X+X=Xm.m.n.n.N.J.H.b b H.^.OXOX'.'.).!.H.m d a a a F '.OXOX'.`.`.Q.~.v s a i g a.n. X^.'.oX'.`.!.Q.T.H.f a l x.v.m.m.m.(.^.'.`.`.).!.Q.E.L.G i.z.z.x.x.l.|.~.J.R.^.`.].`.`._._.Y.P.P.F i.a.z.a.a.a.l.l.a.t.:.!.`.`.`.`._._.}.Y.E.S C B d.s.s.t.t.s.t.t.t.t.t.t.t.t.e.e.i.e.e.e.e.e.t.y.t.w.r.w.w.w.","t.e.e.t.e.t.e.t.t.e.t.t.e.t.e.t.t.e.e.t.e.t.t.e.t.s.j.t.t.j.s.3.e.e.r.r.3.t.d.-.9.w.r.8.y.y.&.{ | | X...| | | X.| | | | Z.Z.;XZ.,X1X2X6X9X9X6X8X8X2X2X8X2X2X<X<X,X,X,X,X,X:X:X;X:X:X-X-XZ.}.Z.;X;X,X;X:XZ.Z.Z.Z.Z.}.Z.X.Z.Z.,X<X,X:X:X:X:X:X:X:X:X;X}.Z.Z.Z.Z.Z.Z.Z.Z.}.o.o.X.....X...........{ ..{ { { { { { { { [ { [ [ ] { { [ _ _ { ] ] ] ] [ ] { { { { { { ] ^ ] <X2X8X8X8X6X6XG.k.x.x.x.x.x.x.x.x.x.x.v.v.v.v.b.v.v.b.v.b.v.V..X@X+XOX^.U.>.n.n.m.v. XJ.A b b b ^.'.'.OX'.`.Q.H.d f a a a >.[.oX'.'.`.!.Q.T.b f a s x m.n.N.].'.'.`.).!.Q.R.H.d a P m.x.x.v.x.|.^.'.'.`.`.Q.Q.Y.L.F a.l.l.l.l.i.(.U.J.T.!.`.`.`._._.R.Y.L.J.G u.u.u.u.u.>.*.>.>.>./.Q.!.`.).).Q._.R.Y.P.S C x e.e.e.s.t.e.t.t.t.t.t.t.t.r.e.e.e.e.e.e.e.e.w.w.w.w.w.w.w.q.","t.e.t.e.p.e.t.t.t.t.t.t.t.t.t.t.t.t.e.t.e.t.e.e.d.3.s.d.3.t.s.f.f.;.,.,.@.Z.Z.Z.;.q.8.8.u.y.u. .| | X.| X.| ..X.Z.Z.| Z.,X6XqX0X0X0X0XqX0X0X9X9X8X8X8X8X8X2X<X<X<X;X:X:X-XZ.Z.Z.}...........{ ..| | { ..| | | [ { { { { | { [ { ] { { { { ] ] ] ] { ] { { { { [ _ [ { ] { ] [ | { { { { { { { ] { ] { ] { { { { { ] [ [ [ [ ] [ [ ] { { ] ] ] ] { ] { { { { { { ^ ^ _ ;X2X2X8X8X6XqXA.F.k.x.x.x.x.x.x.x.x.v.v.x.v.v.v.v.v.m.v.c. X%XoXoX'.R.J.H.:.n.b.b.v.(.H.A b a a T.'.'.'.`.^.Q.H.d f a a f a.(.'.'.'.`.).Q.T.b f a f I m.m.N.~.'.'.'.`.Q.R.T.J.v f P V.c.c.c.N.(.^.`.`.`.)._.Y.Y.L.I.:.:.:.|.:.:.W.U.U.T.!.`.`.`._._.R.Y.L.H.Z P.P.H.H.H.J.K.L.K.K.L.Q.!.!.).)._.Q.R.Y.S S M B s.e.t.e.t.e.t.e.w.t.e.r.t.r.e.e.e.e.e.e.e.y.w.w.w.w.w.w.r.w.","e.t.t.t.e.e.p.e.t.e.t.e.t.e.t.e.t.e.e.e.t.e.e.t.d.g.-.<.S.A.A.4X>X:X;X-XZ.X.Z.Z.+.+.@.+.' +.} { | | | | | X...X.| | Z.| | | | Z.-X:X,X6X6X9XqX0XqXqX9X8X8Xo.........| | { | [ { [ ] { ] ] ] ] ] [ [ ] ] [ _ _ [ ] ] ] ] _ _ [ [ ] { { ] { { ] { { ] { { [ { [ [ [ { { ] { { [ { [ { { ] { { { { { ] { { { { ] { ] ] [ [ [ [ ] _ ] ] ] ] { ] { { { { ] { { ] { { [ ] { Z.<X1X2X2X6X6X7XG.k.k.k.k.x.x.x.x.x.x.x.x.v.v.v.v.v.m.=X{.oXoX^.^.L.K.H.K.I b.b.b.m.I.H.b b b a J.`.`.'.`.!.!.J.d d d d x V.(.'.'.'.`.).Q.T.H.V Z A I :. X|.!.`.'.`.).Q.Q.Y.J.J.T.W./.W.E.W.W.U.^.`.`.).)._._.E.L.P.J.E.U.J.J.T.T.U.Y.E._._.].).`._.R.E.L.H.Z H.H.P.Z V A C Z Z D H.R.Q.).).)._.R.R.L.E.S C B w.s.t.t.t.e.w.t.w.e.t.t.t.t.t.i.e.y.e.e.e.e.w.t.w.r.w.w.y.q.","e.t.t.t.t.t.e.t.e.t.t.t.e.e.e.t.t.e.e.e.e.e.S.A.5X7X7X6X6X6X6X1X1X1X,X<X;X;X}.Z.o.......] { ] ] _ _ _ _ [ | ....X.X.X.Z.| | | | | X.| | | X.Z.-X:X<X1X2Xo.{ { ......| | | | | { | _ [ { ....] { [ [ [ [ [ [ ] ] { ] { ] { { ] ] { ] [ [ ] { ] ] [ { ] ] [ _ ] { [ { [ { | | [ [ { { [ ] { { { { { { { | { { ..{ ........X.X.X.o.o.o.o.o.o.Z.o.Z.Z.Z.}.-X}.;X;X,X,X,X,X,X1X1X6X1XqX6XqXD.p.j.k.k.z.x.z.l.x.x.x.z.z.v.z.k.B..X@X'.'.`.L.Z Z Z H.S F =X X X X~.T.U.J.J.J.~.^.^.`.`.!.Q.T.U.U.U.U.T.~.~.^.^.`.`.Q.R.T.Y.T.Y.T.T.T.T.T.Q.^.`.).).Q.R.Y.L.U.U.U.U.U.T.J.T.U.!.^.^.`.!._.R.E.L.S S H.D D A Z D A C P.!.).`.)._.Q.R.E.L.K.A n k k s s h h h h h C _._.).).`._._._.P.S D M B y.t.e.e.s.r.t.t.r.r.i.e.e.e.e.i.e.t.e.e.e.e.r.t.y.r.w.r.r.r.","p.t.e.t.e.t.t.t.t.t.e.t.s.e.s.e.t.e.e.e.e.e.=.[ | Z.Z.Z.,X1X1X6X2X2X1X1X<Xo.{ { [ ] ^ ^ W W W W R T Y Y T R R ! ~ _ [ { | | | | | | | | | | | ....{ ........] ......Z.Z.| | | X.Z.;X,X,X<X,X..] [ { [ | [ { { { [ { ] { ] ] ..{ { { { { { { { ....| ..X.Z.Z.}.o.Z.Z.Z.Z.Z.Z.;X:X;X;X:X;X:X:X:X<X,X,X<X<X<X<X<X<X<X<X,X:X,X1X,X,X,X:X,X,X,X;X:X:XZ.1XZ.:X,X,X,X,X,X1X,X1X1X1X6X6XqXqXwXyXG.z.k.k.s.s.z.z.k.z.z.z.z.v.c. X].'.'.`.Y.K.S K.K.Z Z H.H.^.^.].^.^.^.!.~.^.~.~.!.^.).).!.Q.U.T.U.T.U.U.T.T.^.'.`.).Q.Q.Y.J.J.J.J.H.H.H.H.Q.^.`.`.).Q.R.Y.J.V m m n b n b b A Q.!.`.).Q.Q.R.Y.K.K.j k j n f N j N v P.~.).`.)._.Q.R.E.K.Z M N j k h h h h k h h D R._.).)._._.R.E.Y.S S D B y.r.e.s.t.r.t.r.r.w.t.t.i.t.e.t.y.t.e.e.e.e.y.t.r.r.r.r.y.t.","e.e.e.t.t.t.e.t.t.t.s.t.e.e.e.e.e.e.e.w.e.e.=.| { | [ | [ { { X.Z.-X:X:XX.] ] { { ] ] ] ^ ^ ~ ! W ! ~ ^ W T W W R R T W { | | | | | | | X.| ..............{ _ | ..}.Z.Z.,X6X6X1X6X,X1X1X1X<X-Xo.-XZ.Z.Z.Z.Z.}.Z.Z.-X;XZ.}.Z.-X-X-X-X-X;X;X,X:X}.;X:X,X:X;X,X:X:X,X<X<X<X,X,X1X1X<X1X1X1X1X1X<X3X1X<X3X<X<X<X<X<X<X:X:X:XZ.,XZ.}.Z.Z.}.Z.Z.Z.Z.Z.Z.Z.o.o.o.o.o.o.Z.| X.Z.Z.1XqXqXqX0XwXwXD.z.j.j.l.z.k.z.z.l.l.z.z. X{.'.oXoXQ.K.Z H.Z Z H.Z Z Z H.~.Q.!.!.Q.R.T.T.J.J.U.!.).).).Q.R.U.V b m m m m H.^.^.`.!.Q.T.U.H.v n v n v v n T.!.`.).!.Q.R.U.J.b n v n n j d n C Q.!.).!.).R.E.Y.L.P.n k N N j n j N n P.~.)._._._.Q.Y.E.K.Z C k j h k s k s h h h D R._._._._._.E.E.E.P.D M B 9.r.r.r.r.r.t.r.w.y.e.w.y.t.e.e.y.i.e.e.e.e.r.i.r.r.y.t.w.t.","e.t.e.t.e.t.e.t.e.e.e.e.e.e.e.e.e.e.e.w.e.3.-.| { [ { [ | { | [ { { { | { ] ] { { ] ] ] ] { { ....X.....! W W W W W ! ! [ | | | | | X.X.| X...........o.-X:X<X6X9XqX0XqX6X6X6X6X6X6X6X1X1X1X1X1X<X<X,X1X1XZ.1XZ.;X;XZ.;XZ.Z.-X-X-X-X-X-X;X;X;X:X;X;X;X;X;XZ.:X-X-X-X;XZ.Z.Z.Z.}.o.o.o.o.X.| }...| }...{ ....{ ..{ ....{ | | Z...Z.| [ Z.| | { | | Z.............X.X.| | | 1X0X0XwX0XwXrX5XG.s.j.s.s.k.g.l.l.l.N.{.`.^.'.Q.P.S Z Z S Z K.Z K.Z Z Z Z Z Z V V V C b V V H.!.!.!.!.Q.T.U.v v v n n v A !.^.).!.Q.T.U.H.n d n n v n n T.!.).).Q.R.Y.U.H.m v j d v v v v V Q.!.).!.Q.R.E.P.K.D j n j N j k d N j K._._._._._._.E.E.K.Z C j h s k h h h h h h D Y.~._._._._._.R.P.S D M l 9.r.r.q.r.r.y.y.w.w.y.t.i.e.y.e.y.e.e.e.q.q.r.r.r.r.q.t.e.t.","t.t.t.e.k.p.3.3.j.p.p.p.3.k.t.3.e.q.e.q.q.e.&.} { [ { { [ | | | [ | | [ | | [ Z.;XZ.:X,X,X;X,XZ.-X}.Z.Z.| | | [ { { { { | | | | ..........| ........Z.,X1XqX0X0XwXwX0X6X6X0X6X0XqX6X6X6X8X2X,X:X;X-X-X-X}.Z.Z.| | | ..{ { { { { { { { { { { { { { { { ] { { { { { { { { { { { ..{ { ....{ ..| | | X.....{ { { ..................| | | ..X.........X.....o.....o.....X.| [ ,X0XwXwXrXrXrXeXS.s.s.s.k.s.z.l.l.g.W.).`.).L.S S Z Z Z S Z Z Z Z Z Z C A A C C V M V M V V Z R.Q.).Q.R.R.U.n n n n n v A !.!.).Q.R.R.L.H.d d n n n v b U.!.).Q.Q.R.Y.L.K.m d d n v n n v V Q.).Q._.Q.R.Y.L.H.A v d d d s j d d j H.R.Q.!.Q._.R.U.L.K.Z V j s s s s s s h s s M T.Q.Q._.Q.Q.R.L.L.S C M k 6.q.8.8.q.q.7.q.q.q.q.q.q.q.q.q.q.q.q.q.q.q.q.q.e.q.q.q.q.q.","e.e.t.e.3.k.k.p.p.3.3.p.p.3.3.p.q.q.q.q.q.q.0.' { { | { [ | [ [ | | Z.1X6X6X6X6X6X6X6X6X6X6X,X,X:X:XZ.Z.Z.}.Z.Z.| | { [ [ { [ { { ........X...X.X.X.| | { | | Z.Z.Z.1X6X6X0X0X0X0X0XqX6X2X{ { ....{ ..{ { { [ | { | { [ { { { ] { { { { ] { { { { { { { { { { ....{ { { ....{ ..{ ......{ ..| | X.X.............................X.X.X.X...X.o.X.o.X.o.o.o.o.o.o.X.}.| { { Z.wXwXrXeXeXfXfXuXs.p.s.s.s.s.j.l.l.|.).U.Z Z Z C S Z Z Z Z S Z Z Z Z Z C A C C V V M V m m A R.Q._.Q.R.T.J.m v m v v n A Q.!.Q._.R.Y.J.Z n n v n n n n U.~.).).Q.R.U.L.K.m d j v n v j n V Q.Q.Q._.Q.R.L.K.H.A v d d d d d j d s H.Q.Q.Q.Q.Q.Y.U.L.S C m f k p z g h k z z z D Y.Q.Q.Q.Q.R.R.Y.K.S C N l 6.6.7.3.7.q.3.q.7.q.q.q.7.q.q.q.7.q.q.q.q.q.q.q.q.3.q.q.q.q.","t.j.3.j.p.3.3.p.t.p.3.j.p.3.p.3.q.q.q.7.3.7.7.=.} [ [ | [ [ | [ [ { X.Z.;X,X1X6XqX6X6X6X6X6X6X1X1X,XZ.| { ] ] ^ ~ W W W T R T T R W ~ ] { | X.X.X.o.| { | | { | | | | | Z.| Z.Z.Z.6X6X6X}.| { ............{ { ..| | { | { ..o.{ { { { { { { ..{ { | ..{ { ......{ ......| | }.| ......X...Z.X.Z.X...........o.....o.X.X.....o...Z.X.X.o.X.o.o.o.-XZ.;X;X;X;X,X,X,X,X,X,X<X1XwXeXeXeXeXeXfXfXS.e.s.s.s.s.j.s.j.u.D M C Z C S Z C Z S Z Z Z Z Z Z C Z A C C V C V V M M C R.Q.Q.R.R.Y.J.n m n n n n C R.!._.R.R.U.L.Z v n v n v n b U.Q.!.Q.R.R.L.L.H.m d d j v d v n C R.Q.Q.Q.Q.Y.L.L.Z A k x l l x x x x c I.T.Q.).Q.Q.R.L.K.S M V L 1 1 q 6 q q q r y J R.Q.Q.Q.Q.R.Y.L.K.S M N x 3.6.3.7.7.7.7.q.q.7.q.3.7.q.q.7.7.q.q.q.q.q.q.q.q.q.q.e.q.3.","t.3.t.t.p.3.p.k.3.p.p.3.p.p.3.p.q.q.q.q.3.3.2.u u w #.) ' ' } _ { [ { { [ { [ | | X.Z.:X,X,X1X6X,X[ _ [ ] ] ] ^ ~ ~ ~ W R R R R W T T R T R R ~ ~ _ [ | [ | | [ | | | | | | | | | | | | Z.| { ....X.X.........X.Z.Z.:X<X8X2X2X..{ ................| | }...{ ....X...o...X.X.o.Z.o.Z.Z.;X}.Z.Z.Z.;X:X:X,X,X<X<X2X2X1X2X6X8X9X9XqX6X0X0X0X0X0XwXwXwX0XwXwXwXwXwXwXrXrXeXrXeXeXeXeXeXfXfXeXkXkXsXp.d.s.s.s.s.s.s.s.u.:.D M Z Z C Z C Z Z C Z Z C C C A A M M V C M M m M M R.R.R.R.Y.U.H.m n n m v n V T.Q.Q.R.Y.U.L.A n v N k N l l U.Q.Q._.R.Y.L.K.H.x c c c K L L L H R.Q.Q.R.R.Y.L.H.Z G 6 6 5 q 5 5 5 5 6 I.Q.Q.Q.R.R.Y.L.K.S V G 6 5 q q 0 0 5 e y 5 I.T.R.Q.Q.R.Y.Y.L.S S M j c 3.3.7.3.2.7.3.3.3.7.3.q.q.3.7.q.7.q.q.7.7.q.8.q.7.q.q.3.q.e.","3.p.t.3.j.3.p.3.e.e.e.e.3.p.3.p.q.q.q.q.7.7.3.u e 0 , ; # $ = & % 7 _ { | [ | [ { { { { | | | | [ _ ^ ] { ] ] ] _ _ _ _ ] ] { { { ! W ! W T W ! R R ! { { | | | | | | | | X.| | | | | X.o.| { ....o.o.-X:X<X8X8X9XqX9X8X9XqX9X:X-X;X;X:X:X,X,X<X<X<X<X1X1X1X2X6X6X9X9XqX9XqX0X0X0X0X0X0XwX0X0XwX0XwXwXwX0XwXwXwXwX0XwXwXwXwXwXwXwXwXwXwXwXwXwXwXwXwXrXrXrXrXeXrXrXwXrXrXwXwXwXeXqX0XwXqX0XqXyXf.d.e.s.e.s.s.s.t.p.i.&.H C D Z Z Z A Z Z C Z Z C C C V V V V V V V m B F Y.R.R.Y.U.J.K.n n d l K P H T.Q.R.R.Y.L.J.N x K 1 6 6 6 w W.T.Q.Q.R.L.L.K.A K 5 5 r 6 q 6 e I Q.Q.Q.R.R.U.L.S S G 5 5 5 5 q 5 5 5 U I.T.Q.R.Q.R.U.L.S Z V B < 4 4 4 5 6 6 5 5 6 I.U.R.R.Q.Y.Y.Y.L.S C M j K 3.3.2.6.6.6.2.7.3.7.q.q.3.q.7.7.7.7.q.7.7.q.3.q.q.3.q.q.q.3.","t.t.t.j.3.j.3.p.q.e.q.q.p.3.p.3.q.q.8.3.7.3.2.u e 0 0 3 , , # # + + ` { | [ [ | { { | { | [ [ | [ [ ^ ] { { { ..o.Z.Z.Z.-X-XZ.}.X.] ^ ^ _ ~ _ _ ^ _ ] { | { | | | | | | | | | | | X.| | Z.Z.Z.,X2X9X0X0X0X0X0X0XwX0X0X0X0X0X0X0X0X0X0X0X0X0X0X0X0X0XwX0X0XwXwX0X0XwX0XwXwXwXwXwXwXwXrXwXwXrXwXwXwXwX0XwXwX0X0X0X0XqXqXqX9X9X2X6X2X2X1X1X<X<X<X:X,X;X;X;X;X-XZ.Z.Z.Z.Z.Z.o.X.| X.Z.Z.Z.Z.Z.Z.Z.f.e.d.e.d.d.e.e.d.t.t.i.i.*.J C Z Z A C Z C C C C I *.u.*.F V m v d s K *.E.Y.Y.Y.U.L.Z N f z K 4 t I Y.T.R.Y.L.L.H.J 3 4 5 5 5 6 q W.R.Q.R.R.L.L.Z Z L 5 6 6 5 6 5 5 J T.R.R.R.R.L.K.K.M B 4 5 6 6 5 4 4 5 L P.T.R.Q.R.Y.U.L.S C m x < > 3 3 3 3 4 4 5 L P.T.R.R.R.R.Y.L.K.S M M j L 2.2.2.2.2.2.2.7.3.7.3.3.q.3.7.7.7.q.7.q.7.7.q.q.q.q.3.q.q.q.","3.e.3.3.j.p.3.p.q.q.e.e.p.3.3.3.8.3.8.8.7.3.3.2.u u y y e e 0 0 0 > ) | [ | | [ [ | | | [ | [ | ..o.o.:X<X1X2X1X1X<X,X,X,XZ.Z.,X-X-Xo.o.o.X.| | ....{ | [ | | | | | | | | | | | | Z.Z.1X0X0XwXwXwXwXwXwXwXwX0XwXwX0XwXwXwXwXwXwX0XwXwX0XwXwX0X0XwX0X0X0X0X9X9X9X9X6X2X1X1X1X,X,X,X;X,X;X;X;XZ.Z.Z.Z.Z.Z.o.o.o.o.X.X.X.X...X.X.X.X.X...X.X.X.....| X.X.X.X.X.X.X.X.| X.| X.X.X.| [ Z.Z.Z.Z.[ } 9.e.r.r.d.e.r.r.r.y.e.y.y.e.0.*.F A A C C C Z C C I 7.7.%.H G m d f g 2 L E.Y.Y.U.J.L.G L 1 1 4 6 5 I U.T.R.Y.L.K.H.c 4 6 6 5 5 6 1 E.R.R.R.Y.L.S Z A 1 4 5 5 4 4 4 4 J T.R.R.R.U.L.K.Z M x 6 4 4 4 > 4 4 > L U.Y.R.R.R.Y.L.K.S M m c : : : : : : > > > P J.Y.R.R.R.R.Y.K.S C M j f q 2.2.2.2.2.2.2.3.7.3.3.7.3.3.7.7.7.7.7.7.7.7.3.q.3.q.3.q.3.q.","p.t.p.e.t.3.p.3.e.q.e.e.3.p.3.p.q.q.3.6.6.7.3.8.u 3.u u u u y y 0 0 #.| | [ [ [ | [ | [ | | Z.6X9X0X0X0XqX9X9X8X6X2X6X1X6X,X1X,X-XZ.o.o...| | | ] ^ ^ ^ [ { | [ | | | | | | X.| | | | | | Z.;X1X8X0X0XwXeXwXrXrXeXwXeXwXwXwX9X-X;X-X-X-Xo.o.o.o.X.X.X.X.....X...X.X...X.X.X.....X.o.| X.X.| X.....o.......X.....X.X.| X.X.X...X.X.X.X.X.X...X.X.X.X.X.X...X...X.X.X.X.X.X.X.X.X.Z.Z.[ [ Z.Z.Z.&.8.w.8.8.8.w.8.r.y.y.8.8.y.8.8.0.#.F Z C C C C M *.5.%.u %.6 L L L 6 6 P Y.Y.U.L.L.H.F 5 5 6 4 4 4 H U.T.U.L.L.K.A H 4 4 4 4 4 5 $.L.R.R.Y.L.L.S Z G 1 4 4 4 4 4 4 6 F T.R.R.Y.U.K.K.C C c < > > > 4 > 4 > P U.T.R.R.Y.Y.L.S Z M b c : : : : : : > > > c U.Y.R.R.Y.Y.Y.L.S S M j k e u 2.2.2.2.2.2.2.3.3.3.3.3.7.7.3.7.7.7.7.7.7.q.3.q.3.q.q.3.q.","e.w.w.e.w.w.8.w.q.e.q.q.8.q.q.q.3.w.3.3.8.3.3.3.3.3.3.3.3.u u u y y w #.) ' } [ [ [ | | | [ [ | | Z.Z.;X1X6X6X6X9X9XqX6X6X1X<X[ ] ^ ^ ^ ^ ! W 7 T 7 T 7 7 W 7 _ ~ _ [ | | | | X...X...[ { [ [ { [ | | Z.Z.,X6X0XwXwXrXeXeXrX<XX.o.o.X.o.o...X.o.o.X.....X.X.X.X.X.X.| X.X.X.....X.X.X.....X.X.X...X.X.X...X.X...X.X...X.X.X.X.X.X.| o.X.X.X.X.X.X.X.X.X...X.X.X.X.X.X.X.| Z.| | Z.Z.[ Z.Z.| Z.&.8.8.8.8.3.8.3.8.7.7.0.3.6.3.0.6.%.%.#.G M C C A $.%.y y r q q q 4 5 6 P Y.L.L.L.K.K.B 4 5 4 4 4 q H U.U.U.L.K.S A c < 4 > > > 4 L U.Y.Y.U.L.L.Z C B < > 3 4 < < < 1 I.Y.T.Y.Y.L.K.S M M c > > < > 4 > < 5 c L.T.Y.Y.Y.L.L.S C M n K : , : : : : > : : H L.Y.R.R.Y.Y.L.K.S M M j z e t u 2.u 2.2.2.2.2.2.2.2.4.7.7.7.7.7.7.7.7.7.q.q.7.7.3.q.q.7.","w.r.w.w.w.w.e.w.e.q.w.w.w.q.q.q.w.w.e.w.3.8.3.8.8.8.3.3.3.3.3.3.u y w 0 3 : , ; 9 8 7 _ _ [ | [ [ | | | [ { X.Z.Z.;X,X1X6X1X{ ~ ^ ] ] ^ ^ ~ ! W W W W 7 W 7 ~ 7 R 7 T R ! ~ _ _ [ ..| { | [ { [ | [ | [ | [ | { ..X.-X,X1X6X,X....o.o.o.o.o.X...X.X.X.X.X.X.X...X.X.X.X.X.....X.X.X.X.X.X.X.o.X.X.X...X.X.o.X.o.X.X.X.X.X...X.X.X.X.X.X.X.X.X.X.X.X.X.o.o...o.X.Z.X.X.X.Z.| | Z.| Z.Z.Z.| Z.+.8.8.8.8.8.8.8.8.8.6.4.6.6.u %.u u y y %.U c C m G r q r r q r 5 5 5 5 q I U.U.L.L.K.Z J 3 4 4 4 4 < F L.U.L.K.K.S A K < > < 4 < < P L.U.U.U.L.S Z C B < 0 < < < 4 > L P.Y.Y.U.L.L.S Z M M K 4 4 < 4 < 4 4 < H U.U.R.Y.L.L.S S M M v 2 : : : : : : : , < J U.Y.Y.Y.Y.L.L.S S M N h c w y t t t t u 2.2.2.u 2.2.2.2.2.2.7.2.3.7.3.7.3.3.3.q.7.q.7.q.","e.e.e.e.e.e.r.r.e.w.q.q.w.8.w.q.w.3.e.e.e.q.q.q.3.w.8.3.8.3.3.3.u u u y 0 , ; * @ o o O O = W [ [ | | [ | [ [ [ [ | { { ..{ ^ ^ ^ ] ^ ] ^ ^ ^ _ _ _ [ | Z.| Z.7 W T T R R T W R R R ! [ [ [ { { [ | | [ | | | [ { | { { | ;X:X| o.o.o.o.o.o.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.o...X.X.X.....X.o...X.X.X.o.o.o.o.o.X.X.X.X.X.o.X.X.X.o.X.X.X.o.o.o.X.Z.Z.| Z.Z.....Z.[ [ Z. .Z.Z.&.8.8.8.3.0.3.3.6.6.%.%.u y y w e < > , ; # = k x < 5 6 5 5 r 5 e 5 6 5 I L.L.L.S S Z H 5 6 4 4 5 0 F L.L.L.K.S C M L 3 4 < < 4 < I L.U.L.L.K.S Z M x < < < 4 4 4 4 L L.Y.Y.U.L.L.S Z M n 2 < < < < > < < < F L.U.Y.Y.L.L.S S M N N 1 , : : : : : : < 1 I.L.Y.Y.U.Y.Y.K.S C M j h * 0 0 y t t t u u 2.2.2.2.2.2.3.2.7.2.2.7.3.3.7.3.3.7.3.3.q.q.q.","e.e.e.w.e.w.r.r.e.w.r.w.w.w.w.q.w.8.8.3.w.8.3.w.3.8.3.8.3.8.3.3.3.3.3.u e y e e 0 3 , ; - # 8 | | [ { [ [ | | { | [ { { { ] ] ^ ~ ] ] { { X.X.}.;XZ.Z.Z.Z.Z.}.^ _ _ _ ~ ^ ^ ^ _ ^ ] [ [ [ | [ | | [ | [ | [ | | { | | { | Z.,X......o.o.o.o.o.o.o.X.X.X.X.X.X.X.X.X.X.X.X...o...X.X.X.X.o...X.o.X.X.X.o...o.o.X.X.o.X.X...o...o.X.X.X.o.X.X.X.o.X.o.X.X.o.X.X.o.X.X.Z.Z.Z.Z.}...Z.Z.Z.Z.Z.Z.+.&.8.8.8.8.8.3.3.0.6.6.2.u y y e e 0 0 0 > : 2 2 1 6 5 r r r r y 5 r r e H L.L.K.S Z C c 0 5 5 5 5 6 P.L.L.K.K.S C A 1 4 4 4 4 4 4 J L.U.L.K.K.S M M c < 4 < < < 4 < P J.Y.U.L.L.K.S M N N 1 < > < < < 4 < 1 I.U.U.Y.L.L.L.S M M N k < < > : : : : : > K K.U.U.Y.Y.L.L.K.S M M j h 2 0 e e y t t t u u u u 2.2.2.2.2.2.2.7.3.3.7.3.q.q.3.q.7.q.3.3.","e.e.e.t.e.r.e.e.r.r.r.r.w.w.w.w.e.e.e.8.e.3.e.e.d.3.e.3.3.3.w.8.8.3.3.3.u u u u u y y y 0 0 w } [ | [ | { { { { [ | [ { { [ { { ..-X<X1X2X1X1X1X,X,X,X,X:X;X;X-XZ.Z.o.o...o.....| X.| { [ [ [ | [ | | | { | { | | { | | | Z.,X| ..o.....o.o.o.X.o.X.o.o.X.o.X.o.o.X.X...o.X...o.X.X.X...o.X.X...X.X.o.o.X.o.o.o.X.o.o.o...X.o...X.X.X.X...X.......| ....{ { { { [ [ ] ] { -X;X:XZ.1X6X6XD.&.-.8.8.8.8.8.8.3.8.6.6.3.6.u u u u y y y r w r e q r y y y y y y y %.r y w J L.L.S S C C L e q 5 6 5 L P.L.K.K.S M M B < 5 4 4 < 4 1 F L.L.L.K.S C M m K 4 4 3 < 0 < 3 J L.L.L.L.L.S C M M l < 4 4 6 4 > 4 4 P P.J.U.Y.L.L.S C M M j x > > 4 < < < < < < H L.U.U.U.U.L.L.S S M N j h U q e e e y t u u u 2.u 2.2.2.2.3.7.2.7.2.7.7.7.3.3.7.7.3.q.q.q.","e.e.e.r.e.r.e.e.e.e.e.e.e.w.w.w.3.e.e.w.e.s.3.3.3.e.3.d.8.8.q.3.8.3.8.3.3.3.8.3.u u u y y y w } [ [ [ [ [ { [ [ { [ | | ,X2X0X0X0X0XqX9X9X6X2X2X1X1X<X,X,X,X:X;XZ.Z.}.o.o.......| { [ [ | [ | | | [ | [ | | | { | { | | { o.,XX...o.o.o.o...o.o.o.o.X.X.o.X.o.X.X.o.o...o...o.X.X.X.o.............| { { { { { { ] [ ] ] ] ] ^ ] _ _ ^ ^ ^ ^ ~ ~ ~ ~ ~ ~ ^ ^ ~ ^ _ ~ ! ! ^ -X,X<X1X6X6X0X5X8.8.8.8.6.8.8.8.6.8.6.8.0.6.6.3.%.%.u %.%.%.u %.y %.y %.u y y y t y r y y $.F K.S S C C N L 5 6 q 5 5 P K.K.K.S S M M B 6 5 6 4 4 5 L D L.L.K.S S M N N L 4 6 6 < 4 4 0 F L.L.L.L.S S M M n c 6 4 6 5 5 6 4 6 ) L.U.U.L.L.K.S C M j j K 5 4 4 4 4 4 4 < 4 F L.J.U.L.L.L.S S C M j k z 0 q e e e t t t u 2.u 2.2.2.3.3.7.2.7.3.3.7.7.7.3.e.7.q.7.q.3.q.","e.t.e.e.e.t.e.e.e.e.e.e.e.r.w.w.e.e.w.w.e.e.3.s.d.3.e.e.q.q.w.3.8.3.8.3.3.3.3.3.3.3.3.u y y y #.=.' ' }  . .| [ [ { [ | | o.-X,X2X9X0X9X0XqX9X9X6X6X2X2X1X:X{ _ [ _ ^ ~ ~ W R R 7 7 7 ! ! _ _ { [ | [ | | | | | | | | X.| o.:XX.| { | { { { { { { [ [ [ [ ] [ [ _ ] ^ ] _ ] ^ ^ ^ ] ^ ^ ^ ^ ^ ^ _ ^ ] ^ ^ ^ ^ ^ ^ ] ^ ^ ^ ^ ^ ^ ^ ^ ~ ~ ~ ~ ~ ~ ^ ^ ~ ^ ^ ^ ^ ^ ~ ! ! ~ ^ ..:X,X,X6X6X6XyXf.3.8.8.8.6.8.8.8.9.6.6.8.6.6.6.3.8.3.6.6.4.4.4.4.4.4.4.4.4.%.4.%.%.y y %.$.P.S S M M M N w q 0 q q q c K.K.S S M M N c 5 5 6 6 6 5 L K.K.K.S S M M N B 6 5 5 0 6 6 q 1 P.L.L.L.K.S C M N v L 5 5 5 6 5 6 5 6 F K.L.L.L.P.S S M M j k 1 5 6 5 5 6 6 0 5 L S L.J.U.J.P.K.S S M N j h * 0 q e y t t t u u u 2.2.2.4.4.3.2.7.3.7.7.7.7.7.e.3.q.3.q.q.q.q.","t.e.e.s.t.r.t.t.t.e.e.e.e.e.e.e.s.3.d.r.e.w.e.j.3.w.w.e.w.q.w.q.q.w.8.8.8.8.8.8.3.8.3.3.3.u y 0 0 > , , * & E ~ _ [ [ { [ [ [ [ [ { | o.-X:X1X6X9X9X9X6X1X_ W _ _ _ ~ ~ ! W ! R R W R T T R T W ! _ _ [ { | | | X.| | | | o.:X_ ~ ~ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ~ ^ ^ ~ ^ _ ] ^ ^ ^ ] ^ _ ^ ] ^ ] ] ] ^ ^ ] ^ ] ] ^ ] ^ _ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ] ^ ^ ^ ] _ _ [ { { X.:X,X,X1X6X6X7XD.w.w.8.8.8.8.8.3.8.8.8.8.8.6.9.9.6.8.7.7.7.7.0.6.7.7.5.7.7.6.6.3.4.4.u %.*.S S C M M n l 6 5 q q q e J S S C C M n n K 5 5 e 5 r 5 I S K.K.S S M n n x 5 q 5 q q 0 q L K.L.K.S S S M n n k 6 5 5 5 %.t t 5 $.D K.L.L.P.S S M M j h x 6 5 e e e r q r q P K.L.E.J.J.J.K.S M M j h p 2 0 0 y e t u u 2.2.2.2.2.4.4.3.7.7.7.7.7.7.7.7.q.3.e.q.q.q.3.q.3.","t.t.t.t.e.t.t.e.t.t.t.t.e.e.t.e.e.e.e.e.e.e.e.e.t.e.t.e.8.8.8.e.8.e.8.8.8.8.3.e.3.3.8.3.3.3.u t e 3 , ; $ $ o O O = & 7 [ Z.[ [ [ Z.[ [ [ _ [ Z.Z.Z.Z.Z.Z.~ W _ _ _ ~ _ ^ ^ ~ ! ! ! ! ~ ^ ] ^ W W W ! W ~ ~ ^ ] ] { { ......o.^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ] ^ ^ ^ ^ _ _ ] ^ ^ ^ _ _ _ _ ] ] ^ ] _ _ _ _ | [ [ | { { { | | { X.| Z.[ [ Z.......X.X.X.| X.X.......| | | | ....X.o.Z.;X;X,XZ.1X1X6XqX5X8.8.8.8.8.8.8.8.w.w.8.8.r.w.8.8.8.8.8.8.8.8.8.8.8.8.8.8.8.7.8.3.8.6.7.6.*.G A M N n k c 5 r %.y %.r I D Z C m n j j 1 q r y %.u %.P I.A Z V V n j j K 5 %.y y 2.%.%.U F H.H.H.Z M M d d z 6 5 t t %.2.2.t %.J J.J.J.H.D Z M n h h c 5 5 t q t t t %.u $./.H.J.J.J.H.S S M n f a g < 5 5 5 t u u 2.2.3.3.3.3.3.3.3.3.e.3.3.e.e.3.e.3.e.7.q.q.q.q.q.8.","e.s.t.t.t.t.t.t.t.e.e.t.t.t.e.t.e.t.e.t.e.e.t.e.e.e.8.e.e.e.8.e.e.8.8.e.e.8.8.e.e.3.e.3.8.3.3.3.y y e e w 3 , ; - @ o o / _ [ [ _ _ [ [ Z._ _ _ [ [ _ _ _ _ W ~ _ _ _ _ ^ ^ _ { { ..o.o.o.o...! ~ ! ~ ~ ~ ~ ~ ~ ! ~ ~ ^ ^ ] ^ ^ ] ^ ^ ] ] { { ] ] ] { { { ..| [ { ..........o.X.o.o.o.o.o.Z.Z.Z.Z.Z.Z.}.Z.Z.o.o.Z.Z.Z.Z.Z.Z.Z.Z.}.o.......X.X.| ....{ { { | [ | { ....o.o.Z.Z.:X1X1X1X6XqX6XS.8.8.8.q.9.8.w.r.8.d.8.8.w.d.e.r.w.e.8.t.8.r.e.r.r.w.w.w.w.w.w.q.r.y.y.9.%.$.I P P L $.4.4.5.7.7.7.5.$.P H H c K $.y 4.4.5.3.7.7.7.5.I H J B l x K q y 4.4.5.7.6.7.7.*.I H J G N l l x 1 y %.u 2.5.4.6.4.5.5.$.I I.F Z V m j k z : 6 t t 4.2.5.2.4.4.5.5.U H I.J.H.Z M n j f i - 3 5 5 2.u 2.2.2.2.3.7.7.3.7.q.e.e.3.t.3.3.3.e.3.e.q.7.e.7.q.w.8.w.","t.t.t.t.t.t.t.t.p.t.t.t.t.t.e.t.t.e.t.e.e.e.t.e.e.e.e.e.t.e.e.e.e.e.8.e.8.3.e.3.e.3.3.8.8.3.3.3.3.3.u y u u y y y 0 0 5 ) ` _ [ [ [ Z.[ [ [ [ Z.[ [ [ [ _ _ ~ ~ _ _ [ Z.-X,X,X,X:X;X:X;XZ.Z.}.| | | [ | { | { ..{ ....{ ....X.X.X.X.....| }...............}.X.X...}.X.X.o...Z.X...o.o...X.X.Z.Z.X.| o...o.X.X.X.| ..X.| [ [ Z.[ [ [ ] ] _ _ _ _ ! W ! W W R R 7 R R R R W R ! ;X1X1X1X6XqX0XD.8.8.8.q.r.w.8.r.w.e.e.e.e.d.t.e.r.e.t.e.t.t.r.e.r.w.s.s.t.s.e.d.d.r.t.r.t.r.r.8.8.8.8.y.y.q.y.w.y.y.y.e.y.7.7.8.7.8.y.y.y.y.y.e.y.y.y.7.q.8.7.7.7.7.8.7.y.y.y.y.y.y.y.y.y.5.4.5.5.4.4.4.4.7.7.7.8.q.y.y.y.y.y.y.5.%.*.$.$.$.y 2.u 2.2.4.4.7.4.7.7.5.y.y.5.y.5.5.U #.P P L L 5 5 u 2.4.2.2.2.7.7.7.7.7.7.q.q.q.e.3.3.p.3.e.p.e.3.t.e.7.q.e.w.w.e.w.","s.t.t.t.t.j.t.t.t.e.p.e.t.t.t.t.t.t.t.p.t.t.e.t.e.e.t.e.e.8.e.e.8.e.e.8.e.e.8.e.e.8.8.e.3.e.8.8.3.3.3.3.u u u u y y y y ) Z.[ [ [ [ _ _ [ [ _ _ _ Z.[ Z.[ [ Z.Z.,X6X6X6X2X1X1X1X1X<X,X:X1X,XZ.Z.Z.Z.Z.Z.o.o.o...o.X.........| | { ..{ ..| { { ..{ ....| ..{ | | | | { { { { [ _ ] ] ^ ^ ^ ~ W ~ ! ! W R R R T T T T 7 7 7 7 7 7 7 7 % Y 7 Y h Y Y Y Y T Y T W 7 R W W W W R R Z.1X1X6XqX0XwX7XG.8.8.r.8.e.d.8.e.d.e.d.e.e.e.e.s.t.e.s.t.t.s.s.s.s.t.s.s.s.s.j.s.s.s.s.t.t.t.t.t.t.t.t.t.t.t.t.e.t.t.t.t.i.e.e.t.t.r.t.t.t.i.e.t.e.e.e.e.t.y.y.y.y.t.y.e.e.e.t.t.t.t.y.e.t.r.r.y.y.y.y.y.w.y.e.e.y.y.e.e.e.e.e.e.r.y.y.y.7.q.7.7.q.q.y.y.y.y.y.y.e.y.y.y.y.y.5.y.7.7.6.6.6.6.4.4.7.7.7.7.7.7.7.7.q.q.7.q.q.e.3.p.p.3.e.t.3.e.e.t.w.w.e.w.w.w.e.e.","p.t.j.t.t.t.t.t.t.t.t.p.t.t.t.t.t.t.t.t.t.t.t.t.e.t.t.e.t.8.t.e.e.8.e.8.e.e.8.8.8.e.8.e.3.e.8.3.7.7.7.3.8.u 8.u u u u u w ' } [ [ [ [ [ Z._ [ [ Z._ [ Z.qXwXwXwX0X6XqX6X6X6X6X2X1X1X1X<X,X,X;X;XZ.Z.Z.Z.Z.Z.[ Z.] ] _ ! ! _ ! ~ ~ W ! ! W T T T T T T 7 T 7 7 7 7 7 7 7 7 7 7 7 h 7 7 7 7 7 7 7 7 7 7 T 7 T 7 T T T T T 7 R R 7 7 7 W R R R R R R W R R 7 ~ W W ! ! ! W W W W Z.qXqX0XwXrXrXeXD.8.r.8.8.d.r.3.s.d.e.d.t.t.t.s.t.s.t.s.s.s.p.j.p.s.s.s.s.j.s.s.j.j.t.j.j.j.j.s.l.p.p.p.p.l.t.p.p.t.a.p.p.p.t.p.t.t.p.p.k.p.p.p.p.a.a.p.a.t.t.t.t.t.i.p.p.p.t.p.p.t.p.p.t.t.t.t.t.t.t.t.e.e.t.p.p.t.e.t.t.t.t.t.t.t.t.e.e.e.y.e.y.y.e.y.e.e.e.e.e.e.y.e.e.e.e.e.e.y.y.y.y.y.7.7.7.7.7.e.7.q.7.q.q.q.q.q.q.3.p.e.3.t.e.3.p.e.e.e.3.e.e.w.e.e.e.e.e.","t.p.t.t.j.t.j.t.p.t.p.e.t.p.t.t.t.t.t.t.t.t.t.t.t.t.t.t.t.t.e.t.e.e.s.e.e.e.e.e.e.e.8.e.8.e.e.3.8.q.8.7.8.8.u 8.8.u u u w y w #.) ) ' [ _ _ [ [ [ [ [ [ Z.Z.Z.Z.6X0X0X0XqX0X9X6X8X8X1X1X6X;X] _ _ ~ ~ W 7 7 7 W 7 h 7 7 % % % % % % 7 7 7 7 7 7 7 7 7 Y Y 7 T 7 7 7 7 7 R 7 7 R 7 W 7 W 7 W ~ W W T W W R W W W R W W R W W ! W ! ! ! W ! W W W W ! ! ! ~ W ~ ~ ^ ~ ~ ! W W W | 0XwXwXrXeXeXfXuX9.8.8.w.w.r.d.e.e.d.t.t.t.t.s.s.t.p.t.s.s.p.s.p.s.s.j.s.j.j.j.s.l.l.j.l.l.j.l.j.l.l.a.l.l.l.l.j.p.a.l.p.l.l.j.a.a.a.p.a.a.p.a.a.p.p.p.p.p.a.a.a.p.p.p.p.p.p.p.p.p.p.p.p.a.p.p.a.p.p.t.p.t.t.p.p.t.a.p.p.p.i.p.p.t.i.p.t.t.t.e.t.e.e.e.t.a.e.e.e.e.e.e.e.e.i.e.e.t.e.y.y.y.e.y.y.e.7.e.e.e.e.e.e.e.e.e.e.e.p.e.e.t.e.e.t.e.e.e.e.e.e.e.e.e.e.e.e.","p.t.j.t.t.t.t.j.t.p.p.t.p.t.t.p.p.t.p.t.p.t.p.t.t.t.t.t.t.t.s.e.e.s.s.e.e.e.e.e.e.e.8.e.e.e.8.e.e.q.8.q.8.8.8.8.3.3.3.u u y 5 , ; - $ $ o 7 7 ! [ [ [ [ _ _ _ [ [ [ | Z.;X,X6X6X9X9X6X6X1X] T ! ~ W W W W 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 T 7 7 7 T T T T T R R R 7 R ! W R R W W W W ! ! W W W W ! ! W ! ~ W W ~ W ~ W ! ! ! ~ ! ! ! ~ ~ ~ ~ ~ ~ ~ ~ ~ ^ ~ ~ _ _ ~ ~ ! ~ W W W [ qXrXeXeXfXfXlXfX<.w.r.8.8.w.d.e.s.r.t.t.s.s.d.j.s.j.j.s.j.s.j.p.j.j.j.j.j.j.l.l.l.l.l.l.l.l.l.l.l.l.l.l.l.l.l.l.l.l.l.l.l.l.l.a.k.a.k.a.k.a.a.k.k.p.p.k.p.a.p.k.p.p.p.a.a.p.a.a.l.p.p.p.k.a.a.p.a.p.p.p.p.a.p.p.p.p.p.p.p.p.a.p.p.p.p.p.p.p.p.i.e.a.a.e.e.a.e.p.a.e.e.e.e.e.e.e.t.t.e.e.y.e.e.e.e.e.e.y.e.e.e.e.e.e.e.e.e.e.p.3.e.e.e.t.e.e.e.e.e.e.e.e.e.e.e.e.","p.p.t.t.j.j.t.t.p.t.p.p.t.p.t.p.t.p.t.p.t.t.t.t.t.s.t.t.t.t.t.s.e.s.e.e.s.e.s.e.e.e.e.e.e.e.e.8.8.e.e.8.8.8.8.8.8.3.8.3.u y e 3 3 ; # @ + o X O O O & [ _ _ [ [ _ [ [ _ [ [ [ | ..o.;X<XZ.W R W ! ~ ~ W ~ ~ W W ! R W R 7 ! _ _ T T T R T T R R R R R R R W W W ~ W W ! ! ! W ! ! ! ~ ! W ! ~ ! ! ! ! ! ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ _ _ _ _ _ _ ] ] ] { { { ....Z.Z.Z.Z.;X:X,X<X1X1X6XqXrXeXfXkXfXlXlXlXsXw.8.r.d.e.e.d.e.s.t.e.s.s.s.s.s.s.j.s.j.j.j.j.j.j.j.k.k.k.k.l.l.l.l.l.l.l.l.l.l.z.z.l.l.l.l.c.l.z.l.z.l.l.l.z.k.x.a.z.k.z.k.k.z.a.z.z.a.z.z.p.a.z.l.l.a.z.z.p.l.l.k.k.a.a.a.l.p.z.a.p.a.p.a.a.a.a.a.p.p.p.p.a.a.a.p.a.p.p.p.p.p.p.p.a.e.a.p.p.a.a.a.p.a.a.a.p.t.t.t.t.t.t.t.e.e.e.e.e.t.e.t.e.e.e.e.e.3.p.p.p.p.e.e.e.p.e.e.e.t.t.e.e.e.e.e.e.","t.p.p.p.p.p.t.t.p.p.t.p.t.t.p.t.t.p.t.p.t.t.p.t.p.p.t.t.t.t.p.e.e.e.e.e.s.e.e.s.e.e.e.e.e.e.e.e.e.8.e.q.8.8.8.8.8.3.8.3.3.3.u t t e e 0 0 > , ; # @ $ ` [ _ [ [ [ [ [ [ [ [ _ [ ] [ [ [ _ ^ R R ! ~ _ ! ~ ! _ ! ~ _ [ Z.Z.Z.Z.Z.W W W R W W W R W ! W W ! W ~ ! ! ! ! ! ~ _ _ ~ [ _ _ _ [ | | | X.X.X.Z.Z.Z.:X:XZ.1X6XZ.qX6X6X6X6X6X0X0X0X0XwXwXwXwXwXwXwXwXrXrXrXeXeXeXeXeXkXeXfXfXkXkXlXlXlXlXxXf.8.w.w.w.e.s.d.e.s.s.s.s.j.s.k.s.k.s.k.k.j.j.k.k.k.k.k.k.k.z.l.l.x.l.l.x.z.z.z.z.z.c.z.z.z.z.z.z.z.z.z.z.z.z.k.x.k.l.z.z.l.z.z.p.z.a.z.z.z.z.k.k.k.k.k.k.k.k.l.l.l.l.l.l.l.l.l.a.l.a.p.a.z.p.z.p.p.k.k.p.k.a.p.p.p.a.k.k.p.p.a.a.a.a.p.p.p.p.j.j.p.p.p.p.p.e.a.t.p.p.p.p.p.p.t.t.t.t.t.t.t.t.t.e.e.p.e.e.e.p.p.e.e.e.p.e.e.p.t.t.t.t.e.t.e.t.","s.s.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.t.p.p.p.p.p.t.p.t.p.t.t.p.j.e.j.e.s.e.e.e.e.s.e.e.e.e.e.e.e.e.e.8.8.e.e.w.w.8.3.8.8.3.3.3.3.u u t u y e 0 0 0 3 ' [ [ [ _ _ [ _ _ _ [ [ [ [ [ [ _ ] _ R W ~ ~ ! _ _ Z.Z.Z.1X1X6X6X0XqX0X6X[ _ ] _ { [ { | ....o.Z.Z.Z.;X,X,X1X1X6X6X6X6X6XqX0X0XwX0XwXwX0XwXwXwXwXwXwXrXwXrXrXrXrXrXeXwXwXeXeXeXrXeXeXrXeXeXeXrXeXeXeXeXkXeXeXeXkXeXkXeXkXeXrXlXkXlXkXfXrXzXS.8.d.w.e.d.e.s.s.s.s.s.s.s.j.s.s.s.k.G.s.j.k.k.k.k.k.k.k.z.k.l.l.l.z.l.z.z.z.z.z.z.l.z.z.z.z.z.z.z.z.z.z.z.z.x.k.z.z.z.l.z.z.z.z.z.z.k.z.a.z.z.k.k.k.k.z.z.k.l.z.z.z.z.a.z.a.l.z.z.k.z.p.p.z.l.l.z.a.k.k.k.k.a.z.p.z.k.a.a.k.k.a.k.k.j.a.k.j.j.p.p.p.k.p.p.p.p.p.p.p.p.p.p.p.p.t.t.t.p.t.t.t.p.a.p.e.p.p.a.e.e.p.e.j.e.p.e.p.t.t.t.t.t.t.t.t.","t.s.p.p.p.p.p.p.p.p.p.p.p.p.p.p.s.p.p.p.p.p.t.p.t.p.t.p.p.t.p.t.e.p.e.s.j.e.e.s.s.e.e.e.e.s.e.e.e.e.e.8.e.8.e.8.8.w.e.q.8.8.8.3.3.3.3.3.3.u u t u y u ) _ [ [ [ [ _ _ [ [ _ [ _ ] ] _ [ ] ] ! ~ [ Z.Z.6X6XqXqXqX0X0XqXqXwX0X0X0XqX0X0X0X0X0X0X0X0XwXwXwXwXwXwXwXrXwXwXrXrXrXeXrXrXrXrXeXeXeXeXeXrXeXrXeXeXeXeXeXfXfXrXrXfXwXrXqXeXrXrXwX0X0X0XqXqX6X6X6X6X1X,XZ.,X:X;X-XZ.Z.o.o.Z.Z.Z.Z.Z.Z.Z.Z.| =.w.8.d.w.e.d.e.s.s.s.s.s.j.j.k.k.k.j.j.k.k.k.k.k.k.k.z.z.k.k.x.l.x.z.z.z.z.z.z.x.z.z.z.z.z.z.z.c.z.z.c.z.z.x.v.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.z.a.z.z.z.z.k.k.z.z.z.z.z.z.z.a.p.z.k.k.l.a.z.k.k.p.z.p.z.a.k.a.k.a.k.a.j.j.j.j.p.k.p.p.p.k.a.a.p.p.p.p.p.e.p.p.p.p.p.t.t.t.e.p.t.p.p.e.p.e.p.e.e.p.p.e.p.e.t.t.e.t.p.e.t.t.","j.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.t.p.p.p.p.p.p.p.p.p.p.p.t.p.p.p.e.e.j.s.e.s.s.s.s.e.e.e.e.e.e.e.e.e.8.e.8.q.e.q.q.q.8.8.8.8.8.3.3.3.3.3.3.u u u w } [ ` [ _ [ [ [ _ [ [ [ ] ] [ { ..;X1X0XwXrXwXwX0XwXwX0X0XwXwXwXwXrXwXwXwXwXwXwXwXrXeXrXwXeXwXwXeXwXeXwXeXrXeXrXeXrXrXrXwXwXwXwXqX0XqXqX6X6X6X1X,X,X,X:XZ.Z.Z.Z.Z.Z.Z.Z.{ | | [ | | [ [ [ [ [ [ [ [ [ [ ] ] ] { [ ] [ ] [ _ _ [ _ [ / _ _ ;.8.8.w.d.e.d.t.t.s.s.j.j.s.j.s.k.k.k.k.k.k.k.k.k.k.k.z.z.x.k.z.x.l.x.x.l.x.x.x.z.x.x.v.z.z.m.v.z.v.z.v.z.z.v.k.x.z.v.z.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.v.z.k.z.v.z.z.z.z.k.x.a.z.z.a.z.a.z.z.z.k.z.k.l.z.a.z.k.z.k.z.k.z.k.k.k.k.k.k.j.j.j.j.k.p.k.k.p.k.p.a.p.p.p.p.p.p.a.p.p.p.p.p.p.p.p.p.p.t.p.p.p.p.e.p.j.e.p.p.e.p.t.p.p.t.t.p.t.t.","p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.t.p.p.p.t.p.t.p.p.p.e.j.s.p.e.p.e.s.s.e.s.e.e.e.s.e.e.e.e.e.e.e.e.e.e.w.8.e.8.8.8.8.8.q.8.7.3.7.3.3.3.u u u w =.) ) ' ` ` [ _ _ [ _ [ _ _ Z.1XqXwXeXlXeXeXrXeXrXeXeXrXeXeXeXrXrXeXrX0X0XqXqX9X9X6X2X1X1X<X,X:X;X;X;XZ.Z.X.Z.X.X.| | [ [ [ [ _ [ [ [ _ [ [ [ [ [ _ | [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ _ [ [ [ [ [ [ [ [ [ [ [ _ [ [ [ [ [ [ [ =.q.w.s.s.e.s.s.s.s.j.s.j.j.j.k.k.k.k.k.k.k.k.k.z.z.k.k.x.k.k.z.z.x.k.x.x.x.z.z.x.x.z.x.z.z.z.z.v.z.z.v.z.x.z.x.x.v.z.v.z.z.v.v.z.z.v.z.z.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.v.k.z.z.l.z.z.z.z.z.z.z.z.l.z.l.z.z.k.a.k.k.k.z.k.k.z.k.k.k.k.k.k.k.k.k.k.k.k.p.p.p.z.p.p.p.k.a.p.p.a.p.p.p.p.p.p.p.p.p.p.p.p.t.p.p.e.p.p.p.p.e.p.p.e.p.p.p.t.p.","p.p.p.p.p.p.j.p.p.p.p.p.j.p.p.p.p.p.p.p.p.p.p.p.p.p.p.p.s.s.p.p.p.p.e.j.p.p.p.p.e.s.s.s.s.p.e.s.t.e.t.e.e.e.e.e.e.e.e.e.e.8.e.8.8.q.q.7.8.7.7.3.8.u u y y 0 3 , ; * & 8 T ! _ _ _ [ _ _ ] ] [ | Z.Z.qXwXrXeXeXfXeXeXeXeXfXfXfX6X..| | [ | [ | [ [ ] [ [ [ [ [ [ _ [ _ [ _ _ [ [ [ [ [ [ [ [ [ [ [ [ [ _ [ [ [ _ [ [ [ [ [ [ [ [ [ [ _ [ [ _ [ [ [ _ [ [ [ [ [ [ [ [ [ [ [ [ [ _ [ _ [ [ [ [ | [ [ ;.w.8.3.d.s.e.d.s.s.s.j.j.s.j.k.k.k.k.z.k.k.k.G.k.z.z.z.z.x.x.x.x.x.l.x.x.x.z.x.z.x.x.x.v.x.x.v.z.z.v.z.m.x.v.m.x.x.v.z.m.v.z.v.k.v.z.v.v.z.z.v.v.z.v.z.v.v.z.z.v.z.v.z.z.z.z.k.v.z.z.z.x.z.z.z.z.z.z.z.l.z.z.k.k.v.z.z.k.k.k.k.z.k.k.k.k.k.k.k.k.k.k.k.k.k.k.z.z.p.p.a.p.z.p.p.k.k.k.k.p.p.p.p.p.p.p.p.p.a.a.p.p.j.p.p.p.p.p.e.p.p.p.p.e.p.e.","j.p.p.p.p.j.p.p.p.p.p.p.p.j.p.p.t.j.s.p.p.p.j.p.p.p.p.p.p.p.p.p.p.p.s.p.p.p.s.e.e.s.s.e.p.e.p.e.t.t.t.t.s.e.t.t.e.e.e.e.e.e.e.e.e.e.q.8.7.q.7.3.8.3.u u t e > ; - @ + X O   O O % 7 Q ` _ _ _ _ _ _ _ _ Z.Z.Z.6XqXwXeXkXlXlXkXZ.{ | | | [ [ [ [ [ [ [ ] _ [ [ [ [ [ [ [ [ [ _ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ _ [ _ [ _ [ [ [ _ [ [ [ [ [ _ [ [ [ [ [ [ [ [ [ [ _ [ [ _ [ [ [ [ _ [ _ [ [ [ [ _ =.8.8.d.s.3.d.s.s.s.k.s.s.k.k.k.k.k.k.z.z.k.x.z.z.z.z.z.x.z.z.l.x.x.x.x.x.z.x.x.x.x.z.x.x.v.x.v.z.v.v.v.z.v.z.z.v.m.z.m.z.v.z.v.v.v.v.v.z.z.v.v.z.v.z.v.z.z.v.v.z.z.z.v.z.z.z.v.v.v.z.z.z.z.z.k.v.z.z.z.z.z.z.z.z.z.l.z.z.v.k.k.z.k.z.z.k.z.k.k.k.k.k.k.k.k.k.p.z.p.z.p.z.p.z.p.p.k.p.p.k.p.k.p.p.p.k.p.p.p.p.p.p.p.p.p.e.p.p.p.p.e.p.p.p.p.p.","p.p.j.p.j.p.p.j.p.p.p.j.p.j.j.p.j.p.j.j.j.p.p.p.p.p.p.p.p.p.p.p.p.j.e.p.p.p.p.p.p.s.s.j.e.s.p.p.p.t.p.e.t.t.e.t.e.e.e.e.e.e.e.8.e.8.8.e.q.q.q.8.8.3.8.3.u u y e 0 3 3 , , # $ + X X o 8 _ _ _ _ _ _ _ _ _ ! _ [ _ _ Z.Z.Z.qXqXZ.[ { [ { [ | [ [ [ [ [ [ [ [ _ [ _ [ _ [ [ [ [ [ _ [ [ _ [ [ [ [ _ [ [ _ [ [ [ _ [ [ [ [ _ [ [ _ [ [ [ [ _ [ [ [ [ _ [ [ _ [ [ [ [ [ _ [ [ [ [ _ ` _ [ [ [ [ [ [ [ ;.8.w.3.s.j.s.s.s.s.s.k.k.k.s.k.k.x.z.k.z.x.k.z.z.z.z.z.z.z.x.x.x.z.x.z.x.x.z.x.x.x.v.v.z.x.x.x.v.v.z.z.v.v.v.z.v.z.v.z.v.v.v.z.v.v.z.v.v.v.z.v.z.v.v.z.v.z.z.z.v.v.z.v.z.v.v.v.k.z.v.x.x.x.x.v.k.z.z.z.v.z.z.z.z.z.v.k.z.z.z.z.z.z.k.z.z.k.z.k.k.k.k.z.k.k.k.k.z.z.z.p.p.z.p.k.k.p.k.p.k.p.k.p.k.p.k.p.p.p.p.p.k.p.p.p.j.p.p.p.p.p.p.p.p.e.p.","j.p.j.p.p.j.p.j.p.k.k.p.p.p.p.p.j.j.p.j.p.j.p.j.p.j.p.j.p.p.p.p.p.j.p.e.j.j.e.j.e.e.j.e.j.s.e.e.t.t.p.t.t.t.t.t.e.e.e.e.e.e.e.e.e.t.e.8.e.8.8.8.8.8.8.3.3.3.3.u t t t e r 0 0 > : , ; 9 _ _ _ _ _ _ _ _ _ _ _ [ _ _ _ _ _ _ Z.Z.[ [ [ | [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ _ [ [ [ [ [ _ [ _ [ [ [ [ [ _ [ [ _ [ _ [ [ [ [ _ [ [ [ _ [ [ [ [ [ [ [ [ [ [ [ [ _ [ [ [ [ [ [ } _ ;.8.8.r.s.t.t.d.s.s.s.k.k.s.G.k.k.k.z.z.k.x.k.z.z.x.z.z.z.x.z.x.z.x.z.x.v.z.z.x.v.v.z.z.v.z.v.v.z.v.v.x.m.x.x.x.x.x.v.v.m.x.v.z.v.v.v.v.v.z.v.v.v.v.z.v.z.v.v.z.v.v.z.z.v.v.z.z.z.v.z.z.z.v.z.k.v.x.z.x.z.z.x.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.k.z.k.k.k.k.k.z.z.z.k.p.k.k.p.p.z.p.k.k.k.p.k.k.j.j.j.j.j.j.p.k.p.p.k.p.p.p.p.p.p.p.p.p.p.p.p.p.","p.j.p.p.j.p.j.p.p.p.p.p.k.k.p.p.j.p.j.p.p.j.j.p.j.p.j.p.p.j.p.j.p.p.p.j.j.e.j.j.j.j.j.j.e.s.j.s.j.p.t.t.t.t.e.t.s.s.s.e.e.e.e.e.8.8.e.e.e.8.e.8.q.q.q.8.8.7.7.3.3.3.3.2.2.u y y y e y w ` _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Z.Z.[ [ [ [ [ [ [ [ [ [ [ [ [ _ [ [ [ _ [ _ _ [ _ [ [ _ [ _ [ _ [ [ ` [ _ [ [ [ [ [ _ [ [ _ _ Z._ [ [ [ [ _ _ _ _ [ _ ` _ _ ` ` ` / / / Q Q / 8 Q 8 8 7 7 8 7 9 9 #.w u 8.8.r.8.8.s.s.s.s.k.j.j.k.k.k.k.k.k.k.x.x.x.z.x.z.x.z.x.x.z.z.z.v.z.x.z.v.x.v.z.v.v.v.z.v.v.z.m.m.z.x.v.x.x.x.m.v.v.x.x.v.x.v.v.v.z.v.v.v.v.v.z.v.v.v.z.v.z.v.v.z.v.v.v.z.v.v.v.z.v.v.v.z.z.k.x.x.x.x.x.x.z.v.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.z.z.z.z.z.z.k.k.k.k.z.z.k.k.z.k.a.z.k.p.p.k.p.k.k.p.j.j.k.p.j.j.p.j.p.p.p.p.k.p.p.p.p.p.p.p.p.p.","p.j.k.p.p.j.j.p.p.k.p.p.p.p.p.k.j.p.p.j.j.j.p.j.p.p.j.j.p.j.j.p.p.j.p.p.j.e.j.j.p.p.p.p.e.j.p.s.t.t.t.s.s.t.e.t.t.t.e.e.s.e.e.e.s.e.e.e.e.e.e.e.e.q.w.8.w.8.8.8.8.3.3.3.6.6.2.3.u u u w ` _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Z.Z.[ [ _ [ [ [ [ [ [ _ [ [ [ _ [ _ _ _ [ _ [ [ _ [ [ _ [ [ [ [ _ [ _ [ } [ ` _ ` ` ` / Q Q Q 8 8 8 8 8 8 9 8 * & * * & $ $ $ + o o X O O O O   O       O .   @ ; 0 u 3.8.8.e.e.s.s.s.s.j.j.z.j.z.k.k.k.x.x.z.x.k.x.x.z.v.z.x.x.x.x.v.x.x.x.x.x.z.v.z.v.z.v.v.v.z.v.v.z.v.z.x.v.v.x.x.m.x.x.v.x.v.x.z.v.v.v.v.v.v.z.v.v.v.z.z.v.v.z.z.v.z.v.z.v.v.z.v.z.v.z.v.z.z.v.v.v.x.v.z.x.z.x.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.z.k.z.z.k.z.z.k.k.z.k.k.z.k.k.k.p.z.k.k.p.k.k.p.j.j.j.j.k.p.k.p.p.k.p.j.p.k.k.p.p.p.p.p.","j.p.p.j.j.p.p.p.p.p.k.j.p.j.k.p.j.j.j.p.p.j.j.p.j.j.j.p.j.p.j.p.j.p.j.p.j.j.j.e.p.p.p.p.j.j.e.p.p.s.t.j.t.j.j.t.t.s.s.s.e.s.j.e.e.t.e.e.e.e.e.e.e.e.w.w.w.w.e.8.8.8.8.3.6.6.3.3.2.u u %.) ` _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Q Z.Z.[ _ _ _ _ [ _ _ [ ` ` _ ` ` ` ` / / / ( ( ( 8 8 8 8 8 * 8 & & $ & = $ o o o o X X O X X O O O O         X X X X X X X X X X o o o + + @ @ @ @ # # - # # # ; 0 t 8.8.e.t.s.s.s.s.k.s.k.j.j.z.j.z.x.k.k.x.z.k.x.x.z.x.z.z.x.z.z.x.x.x.x.x.x.v.v.x.z.v.v.v.z.v.v.v.v.v.v.v.v.x.v.v.m.x.x.v.v.v.v.v.v.v.v.v.v.z.v.v.z.v.v.v.v.v.v.v.v.v.v.v.z.v.z.v.z.v.v.z.v.z.v.z.v.x.x.k.x.x.x.x.v.z.v.z.v.z.v.z.z.z.z.v.z.z.z.z.z.z.z.z.z.z.z.k.z.k.z.k.k.k.k.z.k.k.k.k.z.p.k.k.k.k.k.k.k.j.k.p.k.k.p.k.p.k.j.j.p.p.p.p.p.k.p.p.","p.p.j.j.k.p.p.k.p.k.p.k.j.p.k.k.j.p.p.j.p.j.p.j.j.j.p.j.j.p.j.j.p.j.p.p.p.p.j.p.p.p.s.p.p.p.p.p.p.j.p.t.t.t.j.t.t.j.t.t.e.j.e.e.s.t.e.s.e.t.e.e.e.e.e.8.8.e.8.8.3.w.3.8.8.3.3.3.u 2.u t y w #.) ) / ` _ _ [ _ _ _ _ _ _ _ _ Z.Z./ 8 & 8 & & & & & $ = o $ o o o o o O X O   O                   O       O X o o + + + @ @ @ @ # # ; ; ; ; , , , : > : 0 0 0 0 0 e e e y e e y e y y u u y u 3.3.8.s.s.s.s.s.k.s.k.k.k.j.k.k.k.z.z.k.k.x.z.z.x.z.z.z.z.x.z.z.v.v.x.z.v.x.x.v.z.v.v.z.v.z.v.v.z.z.v.z.v.v.x.x.x.v.v.v.v.x.x.x.v.x.z.v.v.z.v.v.k.v.v.v.v.v.z.v.z.v.z.z.v.v.v.z.v.v.v.z.v.z.v.v.z.v.z.z.v.v.x.x.z.v.z.v.z.z.v.z.z.z.z.z.z.z.z.z.z.v.z.z.z.z.z.z.z.k.z.z.k.k.z.k.k.k.z.k.z.p.z.a.z.k.k.k.k.p.k.k.k.k.p.k.p.k.p.k.p.p.k.p.p.p.k.p.k.p.","j.j.p.j.p.p.k.p.k.p.k.p.j.p.p.p.j.j.j.j.j.p.j.j.j.p.k.p.p.j.j.p.p.j.j.j.j.j.p.p.j.j.j.p.p.p.p.j.j.t.t.j.j.t.t.j.j.t.j.t.j.e.p.p.t.t.t.t.t.t.t.e.e.t.e.t.e.e.e.e.w.w.w.w.w.3.8.3.7.2.2.u y w 5 3 , - # & 7 7 ! _ _ _ _ _ _ _ [ Z.O     . O O O O O O X O o o o o + + + + @ @ # # # ; ; ; , , , : > 3 0 3 5 0 e e e 0 e y e y t y t t y u u t u y u u u 2.y u u u u u 3.u u 3.3.3.3.3.3.3.3.8.q.e.s.s.j.j.k.k.k.k.k.k.z.z.z.z.z.z.x.x.x.k.x.x.x.x.v.z.v.z.v.v.z.z.x.v.x.x.v.z.v.z.x.v.v.v.v.z.v.v.v.v.v.z.v.v.x.v.x.x.v.v.v.v.x.m.v.v.v.v.v.v.v.v.z.v.v.v.v.v.v.v.v.v.z.v.v.z.z.v.v.v.v.v.z.v.v.z.v.v.z.z.x.z.v.z.v.z.z.v.z.v.z.v.z.z.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.z.z.k.k.k.z.z.p.z.k.k.k.p.k.k.k.k.p.k.p.k.p.k.k.p.k.k.p.k.k.p.p.p.p.p.","p.j.j.j.p.k.k.p.p.k.p.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.p.j.j.p.j.j.p.j.p.p.j.j.p.p.p.j.p.j.p.j.j.t.j.j.t.t.j.t.j.e.j.e.j.t.t.s.t.p.t.t.t.t.t.t.e.e.e.e.w.e.w.8.3.w.q.3.3.7.3.3.2.u 0 3 , - # + X X . . O O 7 7 / / _ [ ( $ # # # - ; ; , , > > 3 3 0 0 0 0 0 0 e t t y y y y u u u u t u t u 3.u u 3.u u u u 3.u 3.3.3.3.3.3.8.3.3.8.3.8.3.8.3.8.8.8.8.8.8.8.8.8.w.w.8.8.w.w.w.e.e.d.t.p.s.k.k.k.k.k.x.k.k.z.z.z.z.z.z.z.z.x.x.x.z.x.z.x.z.v.z.v.z.v.v.z.x.x.v.z.v.v.v.v.z.v.z.v.v.v.v.z.z.v.v.v.x.x.x.x.v.x.v.v.x.v.v.x.v.v.z.v.v.v.v.v.v.v.z.z.z.v.v.v.v.v.v.z.v.v.z.v.v.z.z.v.z.v.z.v.v.z.v.z.z.v.z.z.v.z.z.v.z.z.z.z.z.v.z.z.z.v.z.z.z.z.z.z.z.z.z.z.z.k.z.k.k.z.k.k.k.z.z.k.k.k.k.k.k.k.k.k.k.p.k.p.k.k.k.k.k.p.k.p.k.p.k.k.k.p.k.k.","j.j.j.p.k.p.p.k.p.p.k.p.j.j.p.j.p.j.j.j.j.j.j.j.j.p.p.j.p.j.j.j.p.j.j.j.j.j.j.p.j.p.p.j.j.p.p.p.j.j.j.t.j.j.t.j.j.t.j.t.k.e.j.e.s.p.p.s.t.t.p.t.s.t.t.t.t.e.e.e.r.e.w.w.w.8.w.8.8.7.3.3.3.2.e e 0 3 > , ; # @ + o O O X + * 9 , : 3 0 0 0 0 y y w y u u u u u u u 2.3.3.3.3.3.3.8.3.3.3.3.3.8.3.8.3.8.3.8.8.8.8.8.8.8.w.8.8.8.w.w.w.8.q.e.w.w.w.e.e.8.e.e.8.t.e.e.e.e.t.e.t.s.e.s.e.s.t.j.j.s.k.k.k.k.k.x.x.k.x.z.z.z.z.z.z.x.z.x.z.z.z.x.x.z.x.z.z.v.z.v.z.z.v.v.x.x.v.v.z.z.z.v.v.z.v.z.v.v.v.v.v.z.v.v.v.v.v.x.v.x.v.v.x.v.v.z.v.v.v.v.k.v.k.v.z.v.v.v.z.v.z.z.z.v.v.z.v.v.z.v.v.v.z.v.z.v.z.v.z.z.v.z.z.z.v.z.z.v.z.z.v.z.z.z.z.v.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.z.z.z.z.k.z.z.k.k.z.k.z.k.k.k.k.k.k.k.k.k.k.k.p.p.k.p.k.j.j.p.k.p.p.p.k.p.p.","j.p.p.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.p.j.j.j.j.p.j.j.j.p.j.p.t.j.p.p.p.p.p.p.j.e.j.e.j.j.e.j.p.p.p.p.t.t.p.t.t.t.t.t.t.t.t.t.t.e.t.e.w.w.w.w.8.8.7.7.3.3.2.u u t e y e 0 3 > , ; # # - - , > 0 0 y y u u u u u 3.8.8.3.8.8.8.7.8.8.8.8.8.q.8.8.q.e.q.w.8.8.e.e.e.8.e.e.e.e.e.e.e.e.e.e.e.e.t.t.t.t.t.e.t.t.t.t.t.p.t.t.s.t.s.s.s.s.p.t.p.p.p.s.s.s.j.j.j.k.k.k.k.z.z.x.z.z.z.x.z.z.x.z.z.x.z.z.x.z.x.x.z.x.z.x.x.x.x.v.z.v.z.z.x.z.v.x.z.v.v.v.v.z.z.v.v.v.v.v.z.v.v.v.v.z.v.v.v.v.v.z.v.v.z.v.z.v.v.v.k.v.v.v.k.v.k.z.v.v.v.v.v.z.v.z.z.v.v.z.v.z.v.v.z.z.v.v.z.z.v.v.z.v.v.z.z.z.v.z.z.v.v.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.k.z.k.z.z.k.k.z.k.z.k.k.k.k.k.k.k.k.k.j.k.j.j.j.k.p.j.j.j.j.j.j.j.j.","j.j.j.j.p.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.p.j.j.j.j.j.j.j.j.p.p.j.j.j.j.e.j.j.j.p.p.p.p.p.p.t.p.p.p.p.t.p.t.t.t.t.t.t.e.t.t.e.e.w.e.e.8.8.8.8.3.3.u u u u y u u e e e e e e e t u u 3.3.3.8.8.9.8.8.8.8.8.e.e.8.e.e.e.e.e.t.e.e.s.e.e.e.t.t.t.t.t.t.t.t.s.t.t.t.t.t.s.t.s.p.s.t.p.t.p.p.s.s.s.s.p.p.p.j.p.p.p.p.s.s.s.p.p.p.p.p.j.j.j.k.j.j.k.k.k.z.k.z.k.x.k.x.k.x.z.z.x.z.z.x.z.x.k.x.x.x.z.x.z.x.x.z.v.k.z.v.v.x.v.v.x.v.v.z.z.z.v.v.v.z.z.z.v.v.z.z.z.v.v.z.x.x.z.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.v.z.z.v.z.v.z.v.v.v.z.v.z.v.z.z.v.v.z.z.v.v.z.z.z.z.z.z.v.z.z.z.v.z.z.z.z.z.z.v.z.z.z.z.z.z.z.z.k.z.z.z.z.z.k.k.k.z.k.z.p.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.j.k.k.k.j.k.j.k.j.j.j.j.j.j.","j.j.j.p.j.j.j.p.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.p.j.j.p.j.j.j.p.t.j.j.j.j.j.e.e.j.j.j.j.j.p.p.p.p.p.p.p.p.p.t.p.p.t.p.t.t.t.t.t.t.t.t.e.e.e.e.e.e.e.8.e.q.7.8.7.7.3.3.3.u u 3.u 3.3.3.8.8.8.3.e.3.8.w.d.e.e.e.e.e.e.e.t.t.p.t.e.t.e.s.p.e.e.t.t.p.p.t.s.p.t.s.p.t.t.t.s.p.s.s.p.p.s.s.p.p.s.p.s.p.s.j.s.j.p.p.p.s.p.p.p.p.s.j.j.j.j.j.j.j.j.j.s.k.k.k.k.z.k.z.z.z.x.k.k.x.x.k.x.k.x.z.z.z.x.k.x.x.k.x.x.k.z.x.z.x.z.v.z.z.x.v.z.z.x.v.z.v.v.v.v.z.z.z.v.v.z.v.v.v.v.z.v.v.v.z.v.v.v.z.z.v.k.z.v.v.v.v.v.k.v.v.v.v.v.k.z.v.z.z.v.v.z.v.z.v.v.v.z.v.v.z.v.v.z.v.z.v.z.v.z.v.z.v.v.z.z.z.z.z.z.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.k.k.z.z.a.z.z.p.z.k.k.k.k.k.k.k.k.k.j.j.k.k.j.j.k.k.k.k.j.j.j.j.j.j.j.","p.j.j.j.j.j.j.j.j.j.j.j.p.j.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.p.p.j.p.j.j.k.k.j.j.j.e.p.j.p.p.p.p.p.p.p.p.p.p.s.j.p.p.s.p.s.s.t.t.s.e.t.t.t.t.t.e.e.e.e.e.w.w.8.8.w.q.8.8.w.w.w.e.e.e.d.e.s.s.e.e.s.e.s.e.s.t.t.p.t.j.t.t.p.t.p.p.p.p.s.s.s.t.t.p.t.p.t.p.p.t.s.s.s.j.p.s.p.s.j.p.p.p.p.s.s.j.s.j.s.j.s.j.s.j.j.p.j.j.j.j.j.j.s.k.j.k.k.k.k.k.k.k.k.k.z.z.k.z.x.k.x.z.z.z.x.x.z.z.x.x.x.x.z.x.x.x.x.x.v.z.z.x.v.z.v.v.z.z.z.v.x.z.x.x.v.z.z.v.v.v.z.v.v.z.z.v.z.v.z.v.z.v.v.z.v.v.v.z.v.v.v.z.v.k.v.v.v.k.v.z.v.v.v.z.v.v.z.v.v.z.v.z.z.v.z.z.z.v.z.z.z.z.v.z.z.v.z.z.z.z.z.z.v.z.z.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.k.z.z.z.z.z.z.k.z.k.z.k.z.k.k.k.k.k.k.j.k.k.k.j.j.k.j.j.p.k.j.j.j.j.j.j.j.p.","p.k.k.p.j.j.p.j.j.j.k.p.j.j.j.k.j.k.j.j.j.j.j.j.j.j.j.k.j.j.j.j.k.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.p.j.j.k.j.j.e.j.j.k.e.j.p.p.p.p.p.j.p.p.j.p.j.p.p.j.p.p.p.p.p.p.p.t.s.p.t.p.p.p.t.t.e.e.e.p.e.t.e.e.e.t.t.t.t.t.t.t.t.e.e.p.e.s.t.t.t.t.t.s.t.e.j.j.t.s.s.p.p.s.s.e.p.s.p.s.p.p.p.p.p.p.p.p.p.p.p.p.p.j.s.p.p.s.p.j.j.j.j.s.j.j.s.j.j.j.j.j.j.j.j.k.j.j.j.k.j.k.k.k.k.k.k.k.k.z.k.z.z.k.x.x.k.x.k.z.z.z.z.x.z.z.x.x.z.x.k.x.x.z.x.x.x.z.z.v.k.v.v.v.z.v.v.v.z.x.z.v.z.z.v.z.v.v.z.z.v.v.z.v.v.v.v.z.v.v.z.z.v.z.z.v.x.v.v.z.v.v.v.v.z.v.v.v.v.z.v.z.v.v.z.v.v.z.z.v.z.v.z.v.v.z.v.z.z.v.z.z.z.v.z.z.v.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.k.k.z.k.k.k.z.z.k.z.p.z.k.k.k.k.k.k.k.k.j.k.k.j.k.j.j.k.k.k.p.k.j.j.j.j.j.","p.p.p.j.j.j.j.j.p.k.p.k.j.p.j.j.j.j.j.j.j.k.j.k.j.j.j.j.k.j.j.k.j.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.e.j.j.j.j.j.j.p.j.j.j.j.j.j.j.j.p.j.j.p.p.j.p.j.p.p.p.p.p.p.j.s.p.p.p.p.p.p.p.p.s.p.p.t.t.s.p.s.j.t.t.s.t.p.p.t.p.p.p.p.s.t.t.p.j.e.t.j.j.t.s.t.s.p.p.p.s.j.p.p.p.p.p.p.p.p.p.p.j.p.p.p.p.j.p.p.p.j.j.j.j.p.j.p.p.j.p.j.j.j.j.j.j.j.j.j.j.j.k.j.j.k.j.k.k.k.k.k.k.k.k.k.k.k.z.k.k.k.x.k.z.x.x.k.z.x.z.z.z.z.x.z.x.x.z.z.x.z.x.x.z.v.z.v.z.z.k.v.z.z.z.z.z.v.z.v.v.z.v.z.v.z.v.v.z.v.v.z.z.v.v.z.z.v.v.v.v.v.v.z.z.v.v.z.v.z.z.v.v.k.k.v.v.v.z.v.z.v.z.k.v.z.z.v.z.v.z.z.z.k.v.v.v.z.z.v.z.v.v.z.z.z.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.k.z.k.z.k.k.z.z.k.k.k.k.z.z.k.k.k.k.k.k.k.j.k.k.j.k.j.k.j.k.p.j.j.k.p.j.j.j.j.","k.p.p.k.p.p.j.j.j.p.j.j.k.p.j.j.k.j.k.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.p.j.j.j.j.j.j.j.j.j.j.j.j.p.j.p.j.j.j.j.j.p.j.j.p.j.j.p.j.j.j.j.j.j.p.j.p.p.j.p.p.p.j.j.p.p.p.p.p.j.p.p.p.p.s.p.p.j.j.p.p.j.p.p.p.p.p.s.s.t.j.j.t.j.t.p.j.p.p.p.p.p.j.j.s.p.p.p.p.j.j.p.s.p.p.p.p.j.p.j.s.j.p.p.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.k.j.k.k.k.k.j.k.k.k.k.h.k.k.k.k.z.z.z.z.z.x.z.k.z.z.z.z.x.k.z.x.z.x.z.x.x.z.z.x.x.x.x.x.x.z.v.z.k.v.z.v.z.z.z.z.v.v.z.v.z.z.v.v.v.z.z.z.z.v.z.z.v.v.z.z.v.z.v.z.z.v.z.z.v.v.k.k.v.z.z.v.z.z.v.z.z.v.k.z.v.v.z.z.v.z.v.v.z.v.z.v.z.z.v.v.z.z.v.z.z.z.z.z.z.z.v.z.z.v.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.z.k.z.z.k.z.k.k.z.k.k.k.k.k.z.k.z.p.z.k.k.k.k.k.k.k.k.k.j.j.j.k.j.j.j.j.j.k.p.j.j.j.j.","p.k.k.p.k.k.p.j.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.k.j.j.k.k.j.j.k.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.k.j.j.j.j.j.j.j.p.j.j.j.j.j.p.j.j.j.j.p.j.j.p.j.j.p.j.p.j.p.j.s.s.j.j.j.p.j.p.j.p.p.j.p.j.s.s.p.p.p.p.p.p.p.j.j.s.p.s.j.j.s.j.p.j.j.p.p.p.p.p.s.p.j.s.j.p.j.j.j.s.j.p.k.j.p.k.p.j.j.j.j.j.j.j.j.j.k.j.j.j.j.j.k.j.k.j.k.j.k.k.k.k.k.k.k.k.k.k.k.k.z.k.z.k.k.z.k.k.k.x.x.z.z.z.x.z.x.z.z.z.z.z.z.z.z.x.z.z.z.z.x.z.v.z.z.v.k.v.k.v.z.v.v.z.z.z.v.z.v.z.z.z.z.v.v.z.v.z.v.z.z.v.z.v.z.z.v.z.z.v.z.z.v.z.v.v.v.z.k.v.v.k.v.v.z.v.z.z.v.z.v.z.z.z.v.z.z.z.z.z.z.z.k.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.k.k.z.k.z.z.k.z.z.k.z.z.k.k.k.z.a.k.k.k.k.k.k.j.k.j.k.j.k.j.k.j.j.k.k.p.k.j.j.p.j.","p.k.p.k.k.p.k.k.p.j.j.j.j.j.j.j.k.j.k.p.k.p.p.k.k.k.p.k.k.j.j.k.j.j.j.j.j.j.k.j.j.k.k.j.j.k.j.j.j.k.j.k.p.k.p.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.k.j.j.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.p.j.j.p.j.j.j.j.p.j.p.j.p.p.p.j.p.p.j.p.j.p.j.j.j.p.p.p.j.j.j.s.p.p.j.p.j.j.p.j.p.s.j.j.s.j.p.p.j.j.j.j.j.p.j.k.j.p.k.j.k.j.j.k.j.p.k.k.k.j.k.p.k.k.p.k.k.k.k.k.k.k.k.z.k.k.k.z.k.z.k.z.z.k.z.k.x.z.z.z.z.k.v.k.z.z.k.v.k.v.z.z.z.z.z.v.z.v.z.z.v.v.z.z.z.v.z.z.v.z.v.z.z.v.v.z.z.z.z.v.v.z.z.z.v.z.v.z.v.z.z.v.z.z.v.z.z.v.z.v.z.v.z.v.z.v.z.v.z.v.z.v.z.z.z.v.v.z.z.z.v.z.v.z.z.v.k.v.z.v.k.v.k.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.k.z.z.k.k.z.k.k.k.z.a.z.k.z.p.z.p.z.z.z.k.k.z.k.k.k.k.p.k.p.k.j.j.j.j.j.j.j.j.","p.k.k.p.p.k.p.p.p.k.j.j.j.j.j.j.p.j.p.k.k.k.k.k.p.k.k.p.p.k.k.p.k.j.j.k.j.k.j.j.j.j.j.j.j.j.k.j.j.j.k.p.k.p.k.p.j.j.p.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.p.p.j.j.j.p.j.s.j.j.j.k.p.j.j.j.j.j.j.j.j.j.j.p.k.k.p.p.j.j.j.k.j.p.k.j.j.j.j.j.j.j.j.k.p.p.k.j.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.z.k.z.k.k.k.z.z.k.z.k.z.z.k.z.k.k.v.k.z.v.k.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.v.v.z.z.z.z.v.z.v.z.z.z.z.v.v.z.z.z.z.v.z.z.z.z.z.z.v.z.z.v.v.z.v.z.z.z.z.z.z.z.z.z.v.z.z.z.z.z.v.z.v.z.z.z.z.v.z.v.z.z.z.z.k.v.z.z.v.z.z.z.z.v.z.z.v.z.z.z.z.z.k.z.z.z.z.z.z.z.k.z.k.z.k.z.z.k.z.z.z.k.k.z.k.z.k.k.k.z.k.k.z.k.k.k.k.z.z.p.p.z.z.p.z.p.p.p.k.k.k.p.k.k.k.p.j.j.j.j.j.j.j.j.","p.k.p.k.k.p.k.p.j.j.k.j.j.k.j.j.j.k.p.k.p.k.k.k.k.k.k.p.p.k.k.p.j.k.j.k.j.j.j.j.j.j.j.j.j.j.j.j.p.k.j.j.k.k.k.k.j.k.k.k.k.j.j.j.j.j.j.j.j.j.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.p.j.j.s.j.j.j.j.j.j.j.j.j.j.j.k.p.p.j.s.j.j.s.j.j.j.j.j.j.j.j.k.j.j.j.j.j.k.j.j.k.j.k.j.k.j.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.z.z.k.k.k.z.k.z.k.z.z.z.k.z.k.x.z.z.z.z.v.k.z.v.v.k.v.k.z.v.z.z.z.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.v.z.v.z.z.z.v.z.z.z.z.z.z.v.z.z.z.v.v.z.z.z.z.z.z.v.z.v.v.z.z.v.z.z.z.v.z.v.z.z.z.z.z.z.z.z.z.k.z.z.z.z.z.v.v.k.v.k.k.z.z.k.z.z.z.z.z.z.k.z.k.z.z.z.z.z.z.z.k.z.z.k.z.z.z.k.k.k.p.z.k.k.z.z.k.k.z.k.k.z.z.k.z.k.k.z.k.k.k.z.p.p.p.z.k.p.k.k.p.p.k.k.k.p.p.k.j.j.j.j.j.j.j.j.","k.p.k.p.p.k.p.k.k.p.p.j.j.j.j.j.j.j.k.j.k.p.p.p.p.p.k.k.k.p.k.k.j.j.j.j.j.k.j.j.k.j.k.j.k.k.j.j.k.j.k.k.j.p.j.j.k.p.k.j.j.j.k.j.k.k.j.j.j.j.j.j.j.j.j.j.k.j.k.j.k.j.j.j.j.j.j.j.j.j.j.j.k.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.p.k.j.k.j.j.j.k.j.j.k.k.j.k.j.j.j.j.j.k.j.j.j.k.j.j.k.j.k.j.k.k.p.k.k.j.k.k.k.k.k.k.k.z.k.k.k.k.k.k.z.k.k.z.k.k.z.k.z.z.z.x.k.z.z.z.z.z.z.z.k.k.v.z.k.v.k.z.z.z.z.v.z.z.z.z.z.z.z.z.z.v.z.z.v.z.z.z.z.z.z.z.v.z.z.z.v.z.v.z.v.v.v.z.z.z.v.z.v.z.v.z.z.z.z.z.z.z.z.v.z.z.z.z.z.z.z.v.z.v.z.z.z.z.v.z.z.v.z.z.z.k.v.k.z.z.v.k.v.z.z.k.z.z.z.z.z.z.z.z.z.z.k.z.k.z.z.z.k.k.z.z.k.z.k.z.z.k.z.z.p.z.k.k.z.z.k.k.k.k.k.k.k.k.k.k.a.z.z.z.p.k.k.p.k.k.k.k.p.p.k.k.p.j.j.j.j.j.j.j.p.","e.k.k.k.e.k.k.p.j.j.j.j.j.j.k.j.k.p.j.k.k.p.j.j.k.p.k.k.p.k.p.k.k.j.j.j.k.j.j.k.j.k.j.j.j.j.j.k.j.k.j.j.k.j.j.j.j.j.j.k.j.j.k.j.j.j.j.k.j.k.j.k.j.k.k.j.j.k.j.j.j.j.k.k.j.k.j.k.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.k.j.k.j.j.j.j.j.j.k.j.j.j.j.k.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.k.j.k.s.j.j.j.k.j.j.k.j.j.k.k.k.j.s.k.j.k.k.k.k.j.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.z.k.z.k.z.z.z.k.k.z.x.k.k.z.z.z.k.k.v.z.k.z.z.k.z.z.z.z.z.z.z.z.z.z.z.v.z.v.z.z.v.z.z.z.v.z.z.z.z.z.z.v.z.z.v.z.z.v.z.z.z.z.z.v.z.z.z.z.z.z.z.z.z.v.z.z.z.z.z.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.z.z.z.z.z.k.z.z.z.z.z.z.z.z.k.k.z.z.z.z.z.z.z.z.k.z.z.k.z.k.z.k.k.z.z.k.k.z.k.z.k.k.k.z.k.k.z.k.k.a.z.k.k.k.k.k.k.k.k.z.p.z.p.z.p.p.z.k.k.k.p.k.k.p.k.j.j.s.j.j.j.j.j.","k.k.k.e.k.k.k.e.j.j.j.j.j.j.j.j.k.p.k.p.j.j.k.j.p.k.p.k.k.k.k.p.j.j.k.j.j.j.j.k.k.j.k.k.k.j.j.j.k.j.k.j.j.j.k.j.k.j.k.j.k.j.j.j.k.j.k.j.j.j.j.k.k.j.j.j.j.j.k.j.k.j.j.j.k.j.j.j.j.j.j.k.j.j.j.k.j.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.k.j.j.j.j.j.j.j.j.j.j.j.j.j.k.k.j.k.j.j.j.k.j.k.j.k.j.k.k.j.j.j.j.k.j.j.k.j.k.k.k.k.k.k.j.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.z.z.k.z.k.z.k.z.k.z.z.z.k.x.z.z.z.k.v.k.z.z.v.k.z.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.v.z.z.z.z.z.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.v.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.k.k.z.k.z.z.k.z.z.z.z.z.k.z.z.k.k.z.k.z.k.k.z.k.z.k.k.k.k.k.k.k.k.k.k.k.k.a.k.k.k.p.z.p.z.z.p.z.p.p.p.k.k.k.p.k.p.k.s.j.j.j.j.j.s."};
+        //string $imageDstScriptPath = `internalVar -userTmpDir`;
+        string $imageDstScriptPath = ` tjh_whatIs "tjh_batch_attr_set"`;	
+                
+
+        tjh_xpm_creator $imageDstScriptPath "/tjh_batch_attr_set_xpm_title.xpm" $tjh_batch_attr_set_xpm_title;
+        global string $imagePath_tjh_batch_attr_set_xpm_title; $imagePath_tjh_batch_attr_set_xpm_title=$imageDstScriptPath +"tjh_batch_attr_set_xpm_title.xpm";
+}
+
+
+global proc tjh_batch_attr_set__advertisement(float $readAdsTimes)// unit: second.
+{
+
+		global int $tjh_batch_attr_set__advertisement___readTimes;
+		//if($tjh_batch_attr_set__advertisement___readTimes==0)$tjh_batch_attr_set__advertisement___readTimes = 1;
+		
+
+		if($tjh_batch_attr_set__advertisement___readTimes < $readAdsTimes)
+		{
+			if (`windowPref -exists tjh_advertisement_window`)
+				 windowPref -remove  tjh_advertisement_window;     
+
+					  
+			if (`window -exists tjh_advertisement_window`)
+				 deleteUI tjh_advertisement_window;
+
+
+			window -topLeftCorner 50 200    -titleBar 0 -w 585 -h 100 tjh_advertisement_window;
+
+			columnLayout -adj 1 -cal "center";
+				
+
+				text -al "center" -l "\n\n\n 感谢您使用 tjh maya原创插件，如有问题，请反馈 tjh官方博客，祝您工作顺利，阿弥陀佛！\n\n\n" ;
+				
+				rowLayout -numberOfColumns 2
+				    -columnWidth2 383 202
+				    -adjustableColumn 2
+				    
+				    -columnAlign  1 "right" 
+				    -columnAttach 1 "both"     0
+				    -columnAttach 2 "both"  0;
+				    
+				   
+				    
+				    button -bgc .5 .7 1 -l "看最新、最全、tjh 全网首发原创插件，访问官方博客..." -c "showHelp -absolute \"http://blog.csdn.net/tian0000hai\"";
+				    button -bgc .5 .5 1 -l "Close  关闭窗口" -c "deleteUI tjh_advertisement_window";
+
+
+
+				    setParent ..; 
+
+			showWindow;
+		}
+
+		$tjh_batch_attr_set__advertisement___readTimes+=1;
+
+	//tjh_batch_attr_set__advertisementwaitTime $waitTime;
+
+}
+
+
+
+global proc tjh_scene_package__openNewPackageDir(string $newPath)
+
+{
+	//string $projectFilePath=`workspace -q -rd`;
+	$newPath = toNativePath($newPath);
+	system ("explorer "+$newPath);
+}
+
+
+global proc tjh_batch_attr_set__advertisementwaitTime(float $Seconds)
+{
+    float $startTime = `timerX`;
+    float $elaspedTime = 0;
+    while ($elaspedTime < $Seconds ) {  $elaspedTime = `timerX -startTime $startTime`;  }
+    print ("Wait Time: "+$elaspedTime+"\n");
+}
+
+//load main proc
+global proc tjh_batch_attr_set()
+{
+	//load default preset and  main ui
+	tjh_batch_attr_set_Preset_management "load" "<default>" ;
+	
+	
+	//always open ads
+	//tjh_batch_attr_set__advertisement 666;
+
+	//load preset ui
+	//tjh_batch_attr_set_Preset;
+
+        //tjh_batch_attr_set_mainUI;
+	
+}
+
+//load main UI.
+tjh_batch_attr_set;
+//tjh_advertisement 3 ;
+//tjh_batch_attr_set_mainUI;

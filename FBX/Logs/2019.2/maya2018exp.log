@@ -1,3 +1,25 @@
 2020-11-27 17:00:07: LOG: Export: E:/LocalProjects/TikTok/BG1/export/geogeo.fbx
 2020-11-27 17:00:15: LOG: [WARNING] Unable to export some material(s) - The plug-in does not support the following material types:
  Material aiUtility1 will be exported as a grey Lambert material.
+2020-12-07 15:41:56: LOG: Export: E:/Unreal Projects/Tiktok/Content/Assets/CH/Seren/Seren.fbx
+2020-12-07 15:42:05: LOG: [WARNING] Skin Definition - The plug-in has found the following skin definition problems :  Unable to find the bind pose for :  / C_Seren / Seren_Con / Group / RigGrp / LeftArmUpFlexyRigGrp / LeftArmUpStartCtrlPos / LeftArmUpStartCtrlCon / LeftArmUpStartCtrlDrv / LeftArmUpStartCtrl. Use the DAG node current transform. Unable to find the bind pose for :  / C_Seren / Seren_Con / Group / RigGrp / LeftArmUpFlexyRigGrp / LeftArmUpStartCtrlPos / LeftArmUpStartCtrlCon / LeftArmUpStartCtrlDrv. Use the DAG node current transform. Unable to find the bind pose for :  / C_Seren / Seren_Con / Group / RigGrp / LeftArmUpFlexyRigGrp / LeftArmUpStartCtrlPos / LeftArmUpStartCtrlCon. Use the DAG node current transform. Unable to find the bind pose for :  / C_Seren / Seren_Con / Group / RigGrp / LeftArmUpFlexyRigGrp / LeftArmUpStartCtrlPos. Use the DAG node current transform. Unable to find the bind pose for :  / C_Seren / Seren_Con / Group / RigGrp / LeftArmUpFlexyRigGrp. Use the DAG node current transform. Unable to find the 
+2020-12-07 15:42:05: LOG: [WARNING] Wrap Deformer Detected - The plug-in does not support Wrap deformers. The following object(s) will be 
+	exported without deforming influences :   / C_Seren / Seren_Mod / seren_Oral_geo / seren_Oral_geoShape
+2020-12-07 15:42:05: LOG: [WARNING] Constraints export failed - The scene contains constraints. Activate the Export constraints or Bake Animation options before exporting.
+
+2020-12-07 15:42:05: LOG: [WARNING] Unsupported constraints export failed - The scene contains constraints that are not supported by the FBX file format. Activate the Bake Animation option before exporting.
+
+2020-12-07 15:42:05: LOG: [WARNING] Unsupported node type: transformGeometry - The plug-in cannot export TransformGeometry nodes. This might create unintended effects. 
+Work Around: 
+\t1. Selected the deformed shape(s), 
+\t2. select Edit > Delete by Type > Non-Deformer History menu. 
+The following deformed shapes are affected:  |C_Seren|Seren_Mod|eye_grp|eye_R_grp|seren_eye_ball_R_geo|seren_eye_ball_R_geoShape |C_Seren|Seren_Mod|eye_grp|eye_R_grp|seren_eye_cornea_R_geo|seren_eye_cornea_R_geoShape |C_Seren|Seren_Mod|eye_grp|eye_L_grp|seren_eye_ball_L_geo|seren_eye_ball_L_geoShape |C_Seren|Seren_Mod|eye_grp|eye_L_grp|seren_eye_cornea_L_geo|seren_eye_cornea_L_geoShape
+2020-12-07 15:42:05: LOG: [WARNING] Non-orthogonal matrix support - One or more objects in the scene has local axes that are not perpendicular to each other (non-orthogonal). 
+	The FBX plug-in only supports orthogonal (or perpendicular) axes and will not correctly import or export any transformations that involve non-perpendicular local axes. 
+	This can create an inaccurate appearance with the affected objects:  info_eye_R_grp info_eye_L_grp
+2020-12-07 15:44:42: LOG: Export: E:/Unreal Projects/Tiktok/Content/Assets/CH/Seren/Seren_ani.fbx
+2020-12-10 11:17:28: LOG: Export: E:/LocalProjects/BOB_IP/bodyShd.fbx
+2020-12-10 11:17:28: LOG: [WARNING] Constraints export failed - The scene contains constraints. Activate the Export constraints or Bake Animation options before exporting.
+
+2020-12-10 11:17:28: LOG: [WARNING] Unsupported constraints export failed - The scene contains constraints that are not supported by the FBX file format. Activate the Bake Animation option before exporting.
+
